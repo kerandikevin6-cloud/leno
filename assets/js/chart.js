@@ -279,37 +279,33 @@
     this.dead = true;
   };
 
-  /* ---------- the timeframe row, on a bars site ----------
-     obisflow's row of sizes over the chart. 1t is the plain tick line;
-     the others are bars of that many ticks, sixty of them on screen. */
-  function timeframes() {
-    var cfg = window.NEX_CHART;
-    if (!cfg || cfg.type !== 'candle') return;
-    var canvas = document.getElementById('chart');
-    var head = canvas && canvas.parentNode.querySelector('.chart-head');
-    if (!head || document.getElementById('tfRow')) return;
-    var sizes = [1, 5, 10, 15];
-    var row = document.createElement('div');
-    row.className = 'tf'; row.id = 'tfRow';
-    row.setAttribute('role', 'group'); row.setAttribute('aria-label', 'Bar size');
-    row.innerHTML = sizes.map(function (n) {
-      return '<button type="button" data-agg="' + n + '"' + (n === (cfg.agg || 1) ? ' class="active"' : '') + '>' + (n === 1 ? 'Line' : n + 't') + '</button>';
-    }).join('');
-    head.parentNode.insertBefore(row, head.nextSibling);
-    row.addEventListener('click', function (e) {
-      var b = e.target.closest('button[data-agg]');
-      if (!b) return;
-      var n = +b.getAttribute('data-agg');
-      cfg.agg = n; cfg.count = n === 1 ? 120 : Math.min(600, n * 32);
-      [].forEach.call(row.children, function (x) { x.classList.toggle('active', x === b); });
+  /* ---------- line / bars switch, like obisflow's chart-type button ----------
+     One button at the top of the zoom tools. Its icon shows what's on screen;
+     a tap swaps line for bars of five ticks, and back. */
+  var ICO_LINE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>';
+  var ICO_BARS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5v4"></path><rect width="4" height="6" x="7" y="9" rx="1"></rect><path d="M9 15v2"></path><path d="M17 3v2"></path><rect width="4" height="8" x="15" y="5" rx="1"></rect><path d="M17 13v3"></path><path d="M3 3v16a2 2 0 0 0 2 2h16"></path></svg>';
+  function typeSwitch() {
+    var tools = document.querySelector('.chart-card .chart-tools');
+    if (!tools || document.getElementById('typeBtn')) return;
+    var cfg = window.NEX_CHART = window.NEX_CHART || { type: 'line', agg: 1, count: 120 };
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.id = 'typeBtn';
+    function paint() {
+      var bars = cfg.type === 'candle' && cfg.agg > 1;
+      btn.innerHTML = bars ? ICO_BARS : ICO_LINE;
+      btn.setAttribute('aria-label', bars ? 'Bars chart, switch to line' : 'Line chart, switch to bars');
+      btn.title = bars ? 'Bars' : 'Line';
+    }
+    paint();
+    tools.insertBefore(btn, tools.firstChild);
+    btn.addEventListener('click', function () {
+      var bars = !(cfg.type === 'candle' && cfg.agg > 1);
+      cfg.type = bars ? 'candle' : 'line'; cfg.agg = bars ? 5 : 1; cfg.count = bars ? 160 : 120;
       var c = window.NexChartLive;
-      if (c) { c.agg = cfg.agg; c.count = cfg.count; c.offset = 0; c.dirty = true; }
+      if (c) { c.type = cfg.type; c.agg = cfg.agg; c.count = cfg.count; c.offset = 0; c.dirty = true; }
+      paint();
     });
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', timeframes);
-  else timeframes();
-
-  window.NexChart = {
-    create: function (canvas, opts) { return new Chart(canvas, opts || {}); }
-  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', typeSwitch);
+  else typeSwitch();
 })();
