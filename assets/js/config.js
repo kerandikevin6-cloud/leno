@@ -39,3 +39,7 @@ window.NEXAS_CONFIG = {
 /* api.js reads this. Kept as a separate global so a host can override
    it with one inline script tag without editing config.js. */
 window.NEXAS_API = window.NEXAS_API || window.NEXAS_CONFIG.apiBase;
+
+/* Bars like obisflow: candles of a few ticks each, with the 1t/5t/10t/15t
+   row over the chart (chart.js reads this). */
+window.NEX_CHART = { type: 'candle', agg: 5, count: 160 };

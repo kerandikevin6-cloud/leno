@@ -15,9 +15,13 @@
     this.cv = canvas;
     this.ctx = canvas.getContext('2d');
     this.symbol = opts.symbol;
-    this.type = 'line';        /* line | candle */
-    this.agg = 1;              /* points per candle */
-    this.count = 120;          /* visible points */
+    /* The site picks its chart in config.js (NEX_CHART): a line, or bars
+       of a few ticks each. */
+    var cfg = window.NEX_CHART || {};
+    this.type = cfg.type || 'line';   /* line | candle */
+    this.agg = cfg.agg || 1;          /* points per candle */
+    this.count = cfg.count || 120;    /* visible points */
+    window.NexChartLive = this;
     this.offset = 0;           /* points scrolled back from the live edge */
     this.markers = [];
     this.cross = null;
@@ -88,7 +92,7 @@
     this.offset = Math.max(0, Math.min(this.data().length - this.count, this.offset));
     this.dirty = true;
   };
-  Chart.prototype.reset = function () { this.count = 120; this.offset = 0; this.dirty = true; };
+  Chart.prototype.reset = function () { this.count = (window.NEX_CHART || {}).count || 120; this.offset = 0; this.dirty = true; };
 
   Chart.prototype.resize = function () {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -182,7 +186,7 @@
 
     /* series */
     if (candles) {
-      var cw = Math.max(2, (w / candles.length) * 0.62);
+      var cw = Math.max(3, (w / candles.length) * 0.72);
       for (i = 0; i < candles.length; i++) {
         var c = candles[i];
         var cx = (i + 0.5) / candles.length * w;
@@ -274,6 +278,36 @@
     window.removeEventListener('resize', this._onResize);
     this.dead = true;
   };
+
+  /* ---------- the timeframe row, on a bars site ----------
+     obisflow's row of sizes over the chart. 1t is the plain tick line;
+     the others are bars of that many ticks, sixty of them on screen. */
+  function timeframes() {
+    var cfg = window.NEX_CHART;
+    if (!cfg || cfg.type !== 'candle') return;
+    var canvas = document.getElementById('chart');
+    var head = canvas && canvas.parentNode.querySelector('.chart-head');
+    if (!head || document.getElementById('tfRow')) return;
+    var sizes = [1, 5, 10, 15];
+    var row = document.createElement('div');
+    row.className = 'tf'; row.id = 'tfRow';
+    row.setAttribute('role', 'group'); row.setAttribute('aria-label', 'Bar size');
+    row.innerHTML = sizes.map(function (n) {
+      return '<button type="button" data-agg="' + n + '"' + (n === (cfg.agg || 1) ? ' class="active"' : '') + '>' + n + 't</button>';
+    }).join('');
+    head.parentNode.insertBefore(row, head.nextSibling);
+    row.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-agg]');
+      if (!b) return;
+      var n = +b.getAttribute('data-agg');
+      cfg.agg = n; cfg.count = n === 1 ? 120 : Math.min(600, n * 32);
+      [].forEach.call(row.children, function (x) { x.classList.toggle('active', x === b); });
+      var c = window.NexChartLive;
+      if (c) { c.agg = cfg.agg; c.count = cfg.count; c.offset = 0; c.dirty = true; }
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', timeframes);
+  else timeframes();
 
   window.NexChart = {
     create: function (canvas, opts) { return new Chart(canvas, opts || {}); }
