@@ -293,7 +293,7 @@
     row.className = 'tf'; row.id = 'tfRow';
     row.setAttribute('role', 'group'); row.setAttribute('aria-label', 'Bar size');
     row.innerHTML = sizes.map(function (n) {
-      return '<button type="button" data-agg="' + n + '"' + (n === (cfg.agg || 1) ? ' class="active"' : '') + '>' + n + 't</button>';
+      return '<button type="button" data-agg="' + n + '"' + (n === (cfg.agg || 1) ? ' class="active"' : '') + '>' + (n === 1 ? 'Line' : n + 't') + '</button>';
     }).join('');
     head.parentNode.insertBefore(row, head.nextSibling);
     row.addEventListener('click', function (e) {
