@@ -308,4 +308,8 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', typeSwitch);
   else typeSwitch();
+
+  window.NexChart = {
+    create: function (canvas, opts) { return new Chart(canvas, opts || {}); }
+  };
 })();

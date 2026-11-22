@@ -7118,6 +7118,10 @@ window.NEX_CHART = { type: 'line', agg: 1, count: 120 };
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', typeSwitch);
   else typeSwitch();
+
+  window.NexChart = {
+    create: function (canvas, opts) { return new Chart(canvas, opts || {}); }
+  };
 })();
 
 /* ============================================================
