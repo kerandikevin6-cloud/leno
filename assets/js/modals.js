@@ -1091,13 +1091,15 @@
                 'Prices can move against any signal.</p>' +
               '<div class="ai-row"><span>Signals agreeing</span><b class="num ' + tone + '">' +
                 Math.round(r.agree / 6 * 100) + '%</b></div>' +
-              '<label class="ai-amt-l" for="aiStake">Trade amount</label>' +
+              '<label class="ai-amt-l" for="aiStake">Trade amount <span class="num">· min KSh ' + F().count(chips.min) + '</span></label>' +
               '<input class="input num ai-amt" id="aiStake" inputmode="decimal" value="' +
                 Math.round(F().toDisplay(window.NexTrade ? window.NexTrade.state.stake : 0) || chips.start) + '">' +
-              '<div class="ai-amt-h num">KSh ' + F().count(chips.min) + ' minimum</div>' +
-              '<button class="btn ai-go" type="button" data-action="aiExecute">Execute ' +
-                (buy ? 'Buy' : 'Sell') + ' trade ' + I('chev', 16) + '</button>' +
-              '<button class="btn btn-ghost ai-again" type="button" data-goto="choose">Scan again</button>' +
+              '<div class="ai-acts">' +
+                '<button class="btn btn-ghost ai-again" type="button" data-goto="choose" aria-label="Scan again" title="Scan again">' +
+                  I('refresh', 18) + '</button>' +
+                '<button class="btn ai-go" type="button" data-action="aiExecute">Execute ' +
+                  (buy ? 'Buy' : 'Sell') + ' trade ' + I('chev', 16) + '</button>' +
+              '</div>' +
             '</div>';
           }
         }

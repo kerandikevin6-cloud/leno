@@ -4488,3 +4488,27 @@ body.no-tabs .ai-fab{bottom:calc(16px + env(safe-area-inset-bottom))}
 .modal-box:has(.ai-pick),.modal-box:has(.ai-scan),.modal-box:has(.ai-res){
   border-radius:22px;max-height:92dvh;overflow-y:auto;
 }
+
+/* ---- scanner: flat coloured icons, and a result that fits a 6" phone ---- */
+.ai-side.buy .ai-side-ico,.ai-side.sell .ai-side-ico,.ai-orb span,.ai-go{box-shadow:none}
+.modal-box:has(.ai-res){padding:14px 16px 14px}
+.modal-box:has(.ai-res) .modal-head{margin-bottom:8px}
+.modal-box:has(.ai-res) .modal-head h2{font-size:15px}
+.ai-res{gap:8px}
+.ai-verdict{gap:12px}
+.ai-v-ico{width:42px;height:42px;border-radius:13px}
+.ai-v-side{font-size:22px}
+.ai-v-lvl{font-size:11px}
+.ai-meter{height:6px}
+.ai-sum{font-size:12.5px;line-height:1.4}
+.ai-sig{padding:9px 12px;gap:6px;border-radius:12px}
+.ai-sig li{font-size:12px;gap:8px}
+.ai-note{font-size:10.5px;line-height:1.35}
+.ai-row{padding-top:8px;font-size:11px}
+.ai-row b{font-size:17px}
+.ai-amt-l{font-size:10.5px}
+.ai-amt-l span{letter-spacing:0;text-transform:none;font-weight:500}
+.ai-amt{height:42px;font-size:16px;margin-top:-2px}
+.ai-acts{display:grid;grid-template-columns:46px 1fr;gap:8px;margin-top:2px}
+.ai-go{height:46px;font-size:15px}
+.ai-again{height:46px;padding:0;display:grid;place-items:center}
