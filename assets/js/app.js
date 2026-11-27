@@ -718,7 +718,7 @@
   function aiFab(page) {
     if (page === 'ai') return '';
     return '<a class="ai-fab" href="' + href('ai') + '" aria-label="AI" title="AI">' +
-      ticon('ai', 26) + '</a>';
+      ticon('ai', 21) + '</a>';
   }
 
   function tabbar(page) {

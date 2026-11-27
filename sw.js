@@ -17,15 +17,15 @@
    It does not need bumping every deploy. The header says revalidate
    now, so from here on a changed file is picked up by asking. This is
    the one-time way out of the year that was already promised. */
-var CACHE = 'lenobinary-v10';
+var CACHE = 'lenobinary-v11';
 var SHELL = [
   'index.html', 'ai.html', 'markets.html', 'positions.html', 'learn.html', 'responsible.html', 'account.html',
   'chat.html', 'history.html', 'copy.html', 'terms.html', 'privacy.html', 'risk.html',
   'security.html', 'complaints.html', 'login.html', 'signup.html', 'forgot-password.html', 'reset-password.html',
-  'assets/css/app.css?v=20261127d',
-  'assets/js/config.js?v=20261127d', 'assets/js/countries.js?v=20261127d', 'assets/js/net.js?v=20261127d', 'assets/js/format.js?v=20261127d', 'assets/js/api.js?v=20261127d', 'assets/js/chart.js?v=20261127d',
-  'assets/js/modals.js?v=20261127d', 'assets/js/trade.js?v=20261127d', 'assets/js/positions.js?v=20261127d',
-  'assets/js/ai.js?v=20261127d', 'assets/js/tour.js?v=20261127d', 'assets/js/app.js?v=20261127d',
+  'assets/css/app.css?v=20261127e',
+  'assets/js/config.js?v=20261127e', 'assets/js/countries.js?v=20261127e', 'assets/js/net.js?v=20261127e', 'assets/js/format.js?v=20261127e', 'assets/js/api.js?v=20261127e', 'assets/js/chart.js?v=20261127e',
+  'assets/js/modals.js?v=20261127e', 'assets/js/trade.js?v=20261127e', 'assets/js/positions.js?v=20261127e',
+  'assets/js/ai.js?v=20261127e', 'assets/js/tour.js?v=20261127e', 'assets/js/app.js?v=20261127e',
   'assets/mpesa.png', 'assets/cards.png', 'assets/cards-ink.png',
   'assets/share-card.png',
   'assets/favicon.ico', 'assets/favicon-32.png', 'assets/favicon-192.png',

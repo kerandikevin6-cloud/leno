@@ -51,15 +51,14 @@
     return ((API.contracts.payoutRate(typeFor(side)) - 1) * 100).toFixed(2) + '%';
   }
 
-  /* ---------- balance, price and the buy/sell meter ----------
+  /* ---------- live price and the buy/sell meter ----------
      Repainted on every tick. The meter is the share of the last 60 ticks
      that moved up (green, Buy) against those that moved down (red, Sell). */
   var METER_TICKS = 60;
   function renderQuote() {
     var meta = API.symbol(S.symbol) || { digits: 2 };
     var h = API.feed.history(S.symbol);
-    var bal = $('qbBalance'), price = $('qbPrice');
-    if (bal) bal.textContent = '$' + F.usdAmount(API.account.displayBalance());
+    var price = $('qbPrice');
     if (!h || !h.length) return;
     if (price) price.textContent = h[h.length - 1].price.toFixed(meta.digits);
 
@@ -300,16 +299,6 @@
         return '<button class="tbtn ' + tone + '" data-side="' + sd[0] + '"' +
           (blocked || busy ? ' disabled' : '') + '>' +
           '<div class="t">' + sd[1] + '</div>' +
-          /* The figure was a bare "19.53", which is a number with no
-             question attached: it could as easily have been the stake,
-             the price or the balance. It says what it is and what it is
-             in — Payout, in dollars, because the stake above it is
-             dollars — with the rate it works out to on the other end of
-             the row. */
-          '<div class="s payout">' +
-            '<span class="s-k">Payout <b>$' + F.usdAmount(payoutFor(sd[0])) + '</b></span>' +
-            '<span class="s-p">' + pct(sd[0]) + '</span>' +
-          '</div>' +
         '</button>';
       }).join('') + '</div>');
   }

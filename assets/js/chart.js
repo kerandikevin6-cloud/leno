@@ -28,7 +28,7 @@
     this.dirty = true;
     this.padR = 64;
     this.padB = 22;
-    this.padT = 12;
+    this.padT = 6;
 
     this._bind();
     this._loop = this._loop.bind(this);
@@ -149,7 +149,7 @@
       for (i = 0; i < points.length; i++) { min = Math.min(min, points[i].price); max = Math.max(max, points[i].price); }
     }
     var span = (max - min) || 1;
-    min -= span * 0.14; max += span * 0.14; span = max - min;
+    min -= span * 0.04; max += span * 0.04; span = max - min;
 
     var w = W - this.padR, h = H - this.padB - this.padT;
     var self = this;
@@ -190,7 +190,7 @@
         var c = candles[i];
         var cx = (i + 0.5) / candles.length * w;
         var up = c.c >= c.o;
-        ctx.strokeStyle = up ? css('--pos') : css('--neg');
+        ctx.strokeStyle = up ? '#22C55E' : '#EF4444';
         ctx.fillStyle = ctx.strokeStyle;
         ctx.lineWidth = 1;
         ctx.beginPath();
