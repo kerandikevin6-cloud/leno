@@ -876,6 +876,14 @@
       document.body.classList.remove('loading');
       renderAll();
 
+      /* A trade asked for from the scanner on another page. Used once,
+         and only if it is fresh. */
+      var pend = null;
+      try { pend = JSON.parse(sessionStorage.getItem('nexas.aiTrade') || 'null'); sessionStorage.removeItem('nexas.aiTrade'); } catch (e) {}
+      if (pend && Date.now() - pend.t < 60000) {
+        setTimeout(function () { execute(pend.side, pend.ksh); }, API.connection.status() === 'live' ? 0 : 1500);
+      }
+
       unsub.push(API.on('tick', function (d) {
         if (d.symbol !== S.symbol) return;
         renderQuote();
@@ -892,5 +900,14 @@
     });
   }
 
-  window.NexTrade = { init: init, state: S };
+  /* A single trade from the AI scanner, at the amount typed there. */
+  function execute(side, ksh) {
+    if (S.run) { window.NexToast('A run is going. Stop it first.'); return; }
+    setStakeShown(ksh);
+    if (API.account.kind() === 'real' && window.NexNeedAccount && window.NexNeedAccount()) return;
+    if (!check()) { renderPanel(); window.NexToast(S.error); return; }
+    place(side);
+  }
+
+  window.NexTrade = { init: init, state: S, execute: execute };
 })();

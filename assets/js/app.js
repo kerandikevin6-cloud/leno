@@ -717,8 +717,8 @@
      not a tab. Left off the AI page itself. */
   function aiFab(page) {
     if (page === 'ai') return '';
-    return '<a class="ai-fab" href="' + href('ai') + '" aria-label="AI" title="AI">' +
-      ticon('ai', 21) + '</a>';
+    return '<button class="ai-fab" type="button" data-open="aiScan" aria-label="AI scanner" title="AI scanner">' +
+      ticon('ai', 21) + '</button>';
   }
 
   function tabbar(page) {
@@ -2197,8 +2197,112 @@
     }
   }
 
+  /* ---------- AI scanner: the six readings ----------
+     All taken off the live feed for the instrument being traded. Each
+     reading says up or down; the verdict is how many agree with the side
+     the trader asked about. */
+  function ema(arr, n) {
+    var k = 2 / (n + 1), e = arr[0], out = [];
+    for (var i = 0; i < arr.length; i++) { e = i ? arr[i] * k + e * (1 - k) : arr[i]; out.push(e); }
+    return out;
+  }
+  function aiAnalyse(side) {
+    var sym = API.prefs.symbol();
+    var p = API.feed.history(sym).slice(-120).map(function (x) { return x.price; });
+    if (p.length < 40) return null;
+    var last = p.length - 1;
+    var e9 = ema(p, 9), e21 = ema(p, 21);
+    var trendUp = e9[last] > e21[last];
+
+    var m1 = p[last] - p[last - 10], m0 = p[last - 10] - p[last - 20];
+    var momUp = m1 > 0 && m1 >= m0 || (m1 > 0 && m0 <= 0);
+
+    var g = 0, l = 0;
+    for (var i = last - 13; i <= last; i++) { var d = p[i] - p[i - 1]; if (d > 0) g += d; else l -= d; }
+    var rsi = l === 0 ? 100 : 100 - 100 / (1 + g / l);
+    var rsiUp = rsi >= 50;
+
+    var e12 = ema(p, 12), e26 = ema(p, 26);
+    var macd = e12.map(function (v, j) { return v - e26[j]; });
+    var sig = ema(macd, 9);
+    var macdUp = macd[last] - sig[last] > 0;
+
+    var a = p.slice(-20, -10), b = p.slice(-10);
+    var hiUp = Math.max.apply(null, b) > Math.max.apply(null, a);
+    var loUp = Math.min.apply(null, b) > Math.min.apply(null, a);
+    var structUp = hiUp && loUp ? true : !hiUp && !loUp ? false : p[last] > p[last - 10];
+
+    var o = b[0], c = b[b.length - 1];
+    var range = (Math.max.apply(null, b) - Math.min.apply(null, b)) || 1;
+    var bodyUp = c >= o, strong = Math.abs(c - o) / range > 0.5;
+
+    var want = side === 'rise';
+    var signals = [
+      { name: 'Trend (EMA 9/21)', up: trendUp, text: trendUp ? 'Short-term trend is up' : 'Short-term trend is down' },
+      { name: 'Momentum', up: momUp, text: momUp ? 'Price is pushing higher' : 'Price is pushing lower' },
+      { name: 'RSI (' + Math.round(rsi) + ')', up: rsiUp, text: rsiUp ? 'RSI leans bullish' : 'RSI leans bearish' },
+      { name: 'MACD', up: macdUp, text: macdUp ? 'MACD histogram positive' : 'MACD histogram negative' },
+      { name: 'Structure', up: structUp, text: structUp ? 'Higher highs / higher lows' : 'Lower highs / lower lows' },
+      { name: 'Candle body', up: bodyUp, text: (strong ? 'Strong ' : 'Small ') + (bodyUp ? 'green body' : 'red body') }
+    ];
+    var agree = 0, against = [];
+    signals.forEach(function (s) { s.ok = s.up === want; if (s.ok) agree++; else against.push(s.name); });
+    var level = agree >= 5 ? 'Strong' : agree >= 3 ? 'Medium' : 'Weak';
+    var dir = want ? 'buy' : 'sell';
+    var summary = 'Current candle is ' + (bodyUp ? 'green' : 'red') + '. ' + agree + ' of 6 signals back a ' + dir +
+      (agree === 6 ? ', all pointing the same way.'
+        : agree === 0 ? '; every signal points the other way.'
+        : '. Caution: ' + against.join(', ') + (against.length > 1 ? ' disagree.' : ' disagrees.'));
+    return { agree: agree, level: level, signals: signals, summary: summary };
+  }
+
+  var aiTimer = null;
+  function aiScan(side) {
+    clearInterval(aiTimer);
+    state.data = { side: side };
+    gotoStep('scanning');
+    var t0 = Date.now(), DUR = 2800;
+    aiTimer = setInterval(function () {
+      if (state.key !== 'aiScan' || state.step !== 'scanning' || !modalOpen) { clearInterval(aiTimer); return; }
+      var f = Math.min(1, (Date.now() - t0) / DUR);
+      var bar = document.getElementById('aiProg'), n = document.getElementById('aiProgN');
+      if (bar) bar.style.width = Math.round(f * 100) + '%';
+      if (n) n.textContent = Math.round(f * 100) + '%';
+      var lis = document.querySelectorAll('#aiSteps li');
+      for (var i = 0; i < lis.length; i++) {
+        var at = i / lis.length;
+        lis[i].className = f >= at + 1 / lis.length ? 'done' : f >= at ? 'now' : '';
+      }
+      if (f >= 1) {
+        clearInterval(aiTimer);
+        var res = aiAnalyse(side);
+        if (!res) { window.NexToast('Waiting for more price ticks, try again in a moment'); state.step = 'choose'; state.trail = []; renderModal(false); return; }
+        state.data.result = res;
+        state.trail = [];
+        state.step = 'result';
+        renderModal(false);
+      }
+    }, 60);
+  }
+
   /* actions that touch money or verification */
   function runAction(name, node) {
+    if (name === 'aiScanBuy') return aiScan('rise');
+    if (name === 'aiScanSell') return aiScan('fall');
+    if (name === 'aiExecute') {
+      var ksh = +((document.getElementById('aiStake') || {}).value) || 0;
+      var min = API.money.stakeChips().min;
+      if (ksh < min) return window.NexToast('Minimum trade is KSh ' + F.count(min));
+      var side = state.data.side;
+      closeModals();
+      if (window.NexTrade && window.NexTrade.execute && document.getElementById('terminal')) {
+        window.NexTrade.execute(side, ksh);
+      } else {
+        try { sessionStorage.setItem('nexas.aiTrade', JSON.stringify({ side: side, ksh: ksh, t: Date.now() })); } catch (e) {}
+        go('/');
+      }
+      return;
+    }
     if (name === 'deposit') {
       clearErrors();
       var box = document.getElementById('amount');

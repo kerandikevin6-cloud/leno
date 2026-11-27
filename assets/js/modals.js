@@ -128,6 +128,11 @@
      changes per rail is what the customer's bank or handset will
      actually be debited, which is shown as a separate line at the moment
      it applies rather than by pricing the whole product in it. */
+  function aiMarketName() {
+    var m = API().symbol(API().prefs.symbol()) || {};
+    return m.name || 'Volatility 10 (1s) Index';
+  }
+
   function payCur(m) {
     if (m === 'usdt') return { cur: 'USD', rate: 1, min: API().money.minDepositUsd(), quick: [5, 10, 25, 50, 100] };
     return { cur: 'KSh', rate: 1, min: API().money.minDepositKes, quick: [300, 500, 1000, 2500, 5000] };
@@ -323,7 +328,7 @@
           body: function () {
             var kind = API().account.kind(), b = API().account.balances();
             var canReal = API().account.realAvailable();
-            var cur = API().account.currency();
+            var cur = 'KSh';
 
             /* The flag is the fastest way to say which money this is.
                Both balances are held in dollars underneath, and the real
@@ -342,9 +347,9 @@
                number about money this visitor does not have. */
             return '<div class="choices">' +
               (canReal
-                ? row('real', 'Real', cur + ' · live funds', F().amount(b.real), 'US')
-                : row('real', 'Real', 'Create an account to trade real funds', 'Sign up', 'US')) +
-              row('demo', 'Demo', cur + ' · practice funds', F().amount(b.demo), 'US') +
+                ? row('real', 'Real', cur + ' · live funds', F().amount(b.real), 'KE')
+                : row('real', 'Real', 'Create an account to trade real funds', 'Sign up', 'KE')) +
+              row('demo', 'Demo', cur + ' · practice funds', F().amount(b.demo), 'KE') +
             '</div><p class="hint" style="margin:14px 2px 0">' +
               (canReal
                 ? 'Open positions stay with the account they were taken on.'
@@ -1017,6 +1022,83 @@
                   won ? F().money(c.payout) : sold ? F().money(c.value) : F().money(0)) +
                 heroRow('Balance:', F().money(API().account.balance()))
             });
+          }
+        }
+      }
+    },
+
+    /* ---------------- AI scanner ----------------
+       Pick a side, watch the scan, read the verdict, trade it. The
+       verdict is the indicators read off the live feed (app.js,
+       aiAnalyse); the agreement figure is how many of the six point the
+       same way, not a promise about the outcome. */
+    aiScan: {
+      steps: {
+        choose: {
+          title: 'AI scanner',
+          sub: function () { return aiMarketName() + ' · live'; },
+          body: function () {
+            return '<div class="ai-pick">' +
+              '<button class="ai-side buy" type="button" data-action="aiScanBuy">' +
+                '<span class="ai-side-ico">' + I('up', 22) + '</span>' +
+                '<span class="ai-side-t"><b>Scan buy market</b><small>Is the price set to rise?</small></span>' +
+              '</button>' +
+              '<button class="ai-side sell" type="button" data-action="aiScanSell">' +
+                '<span class="ai-side-ico">' + I('down', 22) + '</span>' +
+                '<span class="ai-side-t"><b>Scan sell market</b><small>Is the price set to fall?</small></span>' +
+              '</button>' +
+            '</div>';
+          }
+        },
+        scanning: {
+          title: function (s) { return 'Scanning ' + (s.side === 'rise' ? 'buy' : 'sell') + ' market'; },
+          sub: function () { return aiMarketName(); },
+          noBack: true,
+          body: function (s) {
+            var steps = ['Reading the last 120 ticks', 'Trend · EMA 9 / 21', 'Momentum and RSI',
+              'MACD histogram', 'Structure and candle body'];
+            return '<div class="ai-scan ' + (s.side === 'rise' ? 'buy' : 'sell') + '">' +
+              '<div class="ai-orb"><i></i><i></i><span>' + I('radar', 26) + '</span></div>' +
+              '<div class="ai-prog"><i id="aiProg" style="width:0%"></i></div>' +
+              '<div class="ai-prog-n num" id="aiProgN">0%</div>' +
+              '<ul class="ai-steps" id="aiSteps">' + steps.map(function (t, i) {
+                return '<li data-i="' + i + '"><span class="ai-dot"></span>' + t + '</li>';
+              }).join('') + '</ul>' +
+            '</div>';
+          }
+        },
+        result: {
+          title: function () { return 'AI scanner · ' + aiMarketName(); },
+          noBack: true,
+          body: function (s) {
+            var r = s.result || {};
+            var buy = s.side === 'rise';
+            var tone = r.level === 'Strong' ? 'strong' : r.level === 'Medium' ? 'medium' : 'weak';
+            var chips = API().money.stakeChips();
+            return '<div class="ai-res ' + (buy ? 'buy' : 'sell') + '">' +
+              '<div class="ai-verdict">' +
+                '<span class="ai-v-ico">' + I(buy ? 'up' : 'down', 24) + '</span>' +
+                '<div><b class="ai-v-side">' + (buy ? 'BUY' : 'SELL') + '</b>' +
+                  '<span class="ai-v-lvl ' + tone + '">' + r.level + ' · ' + r.agree + '/6 signals</span></div>' +
+              '</div>' +
+              '<div class="ai-meter ' + tone + '"><i style="width:' + Math.round(r.agree / 6 * 100) + '%"></i></div>' +
+              '<p class="ai-sum">' + r.summary + '</p>' +
+              '<ul class="ai-sig">' + r.signals.map(function (g) {
+                return '<li class="' + (g.ok ? 'ok' : 'no') + '"><span class="ai-dot"></span>' +
+                  '<span class="ai-sig-k">' + g.name + '</span><span class="ai-sig-v">' + g.text + '</span></li>';
+              }).join('') + '</ul>' +
+              '<p class="ai-note">Technical reading of recent ticks, not financial advice. ' +
+                'Prices can move against any signal.</p>' +
+              '<div class="ai-row"><span>Signals agreeing</span><b class="num ' + tone + '">' +
+                Math.round(r.agree / 6 * 100) + '%</b></div>' +
+              '<label class="ai-amt-l" for="aiStake">Trade amount</label>' +
+              '<input class="input num ai-amt" id="aiStake" inputmode="decimal" value="' +
+                Math.round(F().toDisplay(window.NexTrade ? window.NexTrade.state.stake : 0) || chips.start) + '">' +
+              '<div class="ai-amt-h num">KSh ' + F().count(chips.min) + ' minimum</div>' +
+              '<button class="btn ai-go" type="button" data-action="aiExecute">Execute ' +
+                (buy ? 'Buy' : 'Sell') + ' trade ' + I('chev', 16) + '</button>' +
+              '<button class="btn btn-ghost ai-again" type="button" data-goto="choose">Scan again</button>' +
+            '</div>';
           }
         }
       }
