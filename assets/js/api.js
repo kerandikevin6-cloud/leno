@@ -127,7 +127,11 @@
     matches: 10.35,
     differs: 1.084,
     over: 1.72,
-    under: 1.72
+    under: 1.72,
+    /* Buy wins if the price ends above where it was bought, Sell if it
+       ends below. */
+    rise: 1.95,
+    fall: 1.95
   };
   var WITHDRAW_UNLOCK_USD = 20;
   var LIMITS = { min: 1, max: 5000, maxTicks: 10, minTicks: 1 };
@@ -664,6 +668,8 @@
   }
 
   function label(c) {
+    if (c.type === 'rise') return 'Buy';
+    if (c.type === 'fall') return 'Sell';
     if (c.type === 'even_odd') return c.side === 'even' ? 'Even' : 'Odd';
     if (c.type === 'matches') return 'Matches ' + c.barrier;
     if (c.type === 'differs') return 'Differs ' + c.barrier;
@@ -758,8 +764,13 @@
     return round(price + (pick - have) * step, meta.digits);
   }
 
-  function winning(c, digit) {
+  /* price is the tick being judged; Buy and Sell compare it with the
+     price the contract was bought at, the digit contracts ignore it. */
+  function winning(c, digit, price) {
+    if (price == null) price = c.lastSpot;
     switch (c.type) {
+      case 'rise': return price > c.entrySpot;
+      case 'fall': return price < c.entrySpot;
       case 'even_odd': return (digit % 2 === 0) === (c.side === 'even');
       case 'matches': return digit === c.barrier;
       case 'differs': return digit !== c.barrier;
@@ -770,9 +781,9 @@
   }
 
   /* indicative resale value while a contract runs */
-  function mark(c, digit) {
+  function mark(c, digit, price) {
     var progress = c.elapsed / c.ticks;
-    var win = winning(c, digit);
+    var win = winning(c, digit, price);
     var v = win
       ? c.stake + (c.payout - c.stake) * progress * 0.82
       : c.stake * (1 - progress * 0.88);
@@ -786,12 +797,12 @@
       c.elapsed++;
       c.lastSpot = point.price;
       c.lastDigit = point.digit;
-      c.value = mark(c, point.digit);
+      c.value = mark(c, point.digit, point.price);
       /* The tally the result card reports: of the ticks this contract
          lived through, how many landed its way. Counted here, on every
          tick including the one that settles it, so wins and losses add
          up to the ticks shown while it ran. */
-      if (winning(c, point.digit)) c.tickWins = (c.tickWins || 0) + 1;
+      if (winning(c, point.digit, point.price)) c.tickWins = (c.tickWins || 0) + 1;
       else c.tickLosses = (c.tickLosses || 0) + 1;
       changed = true;
       if (c.elapsed >= c.ticks) settle(c, point);
@@ -800,7 +811,7 @@
   }
 
   function settle(c, point) {
-    var won = winning(c, point.digit);
+    var won = winning(c, point.digit, point.price);
     c.status = won ? 'won' : 'lost';
     c.exitSpot = point.price;
     c.exitDigit = point.digit;

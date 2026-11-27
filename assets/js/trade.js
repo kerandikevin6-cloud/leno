@@ -15,9 +15,9 @@
 
   var S = {
     symbol: 'R_10',
-    tab: 'even_odd',           /* even_odd | matches | over_under */
+    tab: 'rise_fall',          /* Buy / Sell on the price */
     fromScan: null,            /* the scanner's ticket, while it is shown */
-    side: 'even',
+    side: 'rise',
     barrier: 5,
     stake: 10,               /* USD; replaced at init with a round local figure */
     /* Not a setting. See ticksFor(): a contract runs five seconds, and
@@ -27,7 +27,7 @@
        somebody arriving at a scanner-driven terminal is there to let it
        run, and defaulting to the mode that does nothing on its own made
        them set it up twice. */
-    mode: 'auto',           /* auto | manual */
+    mode: 'manual',         /* one trade per press of Buy or Sell */
     error: null,
     run: null
   };
@@ -37,6 +37,7 @@
   function html(node, markup) { if (node) node.innerHTML = markup; }
 
   function typeFor(side) {
+    if (side === 'rise' || side === 'fall') return side;
     if (S.tab === 'even_odd') return 'even_odd';
     if (S.tab === 'matches') return side === 'matches' ? 'matches' : 'differs';
     return side === 'over' ? 'over' : 'under';
@@ -44,374 +45,50 @@
   function payoutFor(side) {
     return API.contracts.payoutFor(typeFor(side), S.stake);
   }
-  /* payoutRate carries the referral boost, so the figure on the button
-     always matches what the contract actually pays. */
-  function pct(side) {
-    return ((API.contracts.payoutRate(typeFor(side)) - 1) * 100).toFixed(2) + '%';
-  }
 
-  /* ---------- digits ---------- */
-  /* Only for a point old enough to predate the digit being stored on it.
-     Two decimal places was hardcoded here, which is wrong the moment a
-     series is quoted to five. */
-  function lastDigitOf(price, digits) {
-    return Math.abs(Math.round(price * Math.pow(10, digits))) % 10;
-  }
+  /* ---------- balance, price and the buy/sell meter ----------
+     Repainted on every tick. The meter is the share of the last 60 ticks
+     that moved up (green, Buy) against those that moved down (red, Sell). */
+  var METER_TICKS = 60;
+  function renderQuote() {
+    var meta = API.symbol(S.symbol) || { digits: 2 };
+    var h = API.feed.history(S.symbol);
+    var bal = $('qbBalance'), price = $('qbPrice');
+    if (bal) bal.textContent = '$' + F.usdAmount(API.account.displayBalance());
+    if (!h || !h.length) return;
+    if (price) price.textContent = h[h.length - 1].price.toFixed(meta.digits);
 
-  function renderDigits() {
-    var meta = API.symbol(S.symbol);
-    /* Markets is where this is chosen, so the terminal has to say which
-       one it landed on, otherwise the choice is invisible the moment
-       the page changes. Drawn over the chart so it costs no height. */
-    /* A real <select>, not a custom menu: on a phone it opens the
-       system picker, it is reachable from the keyboard for nothing, and
-       it cannot end up behind the canvas. Rebuilt only when the
-       instrument changes, so opening it is not interrupted by the tick
-       that repaints the digits underneath. */
-    /* Our own dropdown, not the browser's: the system menu is a white
-       rectangle in the system font landing on a dark chart. Built once
-       and left alone, so the tick that repaints the digits underneath
-       cannot close it mid-choice. */
-    var instEl = $('chartInst');
-    if (instEl && !instEl.__sel) {
-      instEl.__sel = window.NexSelect(instEl, {
-        options: API.symbols.map(instOption),
-        value: S.symbol,
-        onChange: function (o) { switchSymbol(o.value); }
-      });
-      /* The figures in the list are whatever they were on the last tick
-         of the selected series, which on a two-second instrument is up
-         to two seconds stale at the moment the list opens. Refresh once
-         on the way in, after the click has done the opening. */
-      instEl.addEventListener('click', function () { setTimeout(refreshPicker, 0); });
-    } else if (instEl && instEl.__sel && instEl.__sel.value() !== S.symbol) {
-      instEl.__sel.set(S.symbol);
+    var w = h.slice(-METER_TICKS - 1), up = 0, down = 0;
+    for (var i = 1; i < w.length; i++) {
+      if (w[i].price > w[i - 1].price) up++;
+      else if (w[i].price < w[i - 1].price) down++;
     }
-    refreshPicker();
-    var h = API.feed.history(S.symbol).slice(-120);
-    renderInstLive(h, meta);
-    var counts = [0,0,0,0,0,0,0,0,0,0];
-    h.forEach(function (p) {
-      var dg = p.digit == null ? lastDigitOf(p.price, meta.digits) : p.digit;
-      counts[dg]++;
-    });
-    var total = h.length || 1;
-    var pctArr = counts.map(function (c) { return c / total * 100; });
-    var max = Math.max.apply(null, pctArr);
-    var min = Math.min.apply(null, pctArr);
-    var cur = h[h.length - 1];
-    var curDigit = cur.digit == null ? lastDigitOf(cur.price, meta.digits) : cur.digit;
-
-    var picking = S.tab !== 'even_odd';
-    /* While a contract is running, the digit that just landed is either
-       on its side or it is not, and that is the only thing anybody is
-       reading this row for. Green for a tick the contract wants, red for
-       one it does not — so a trader on Even watches the live circle go
-       green on 2 and red on 3 without doing the parity themselves. */
-    /* Only the tick that settles a contract lights its circle. The ticks
-       before it move the marker as they would with nothing running, so a
-       trade reads as the digits walking and then one landing. */
-    var live = settledJust();
-    var out = '';
-    for (var i = 0; i < 10; i++) {
-      /* The circle holds the digit and nothing else. The share sat
-         inside it at 7.5px, which is under the size anything is meant to
-         be read at, and it was competing with the number it describes. */
-      var cls = 'dcell' + (pctArr[i] === max ? ' hot' : '') +
-        (pctArr[i] === min && min < max ? ' cold' : '') + (i === curDigit ? ' cur' : '') +
-        (picking && i === S.barrier ? ' sel' : '') +
-        (live && i === curDigit
-          ? (API.contracts.winning(live, i) ? ' hit' : ' miss')
-          : '');
-      out += '<button class="' + cls + '" data-digit="' + i + '"' + (picking ? '' : ' tabindex="-1"') + '>' +
-        '<span class="digit">' + i + '</span>' +
-        '<i class="dpct">' + pctArr[i].toFixed(1) + '%</i></button>';
-    }
-    html(el.digits, out);
+    var upPct = up + down ? Math.round(up / (up + down) * 100) : 50;
+    var a = $('smUp'), b = $('smDown'), f = $('smFill');
+    if (a) a.textContent = upPct + '%';
+    if (b) b.textContent = (100 - upPct) + '%';
+    if (f) f.style.height = upPct + '%';
   }
 
-  /* ---------- a row in the instrument picker ----------
-     The mark, the short name, the long one, and on the right what the
-     series is doing: the price and how far it has moved over the last
-     120 ticks, which is the same window the digit shares are counted
-     across and the same one the card over the chart reports.
-
-     "Generated series" stays on every row, including the ones with
-     flags on them. The flags are the shape of the instrument — a pair
-     moving in its fifth decimal — and not a claim that the number came
-     from a market, because it did not: every series in this app is the
-     same random walk with different numbers in front of it. */
-  function instOption(sym) {
-    return {
-      value: sym.id,
-      label: sym.short || sym.name,
-      group: sym.group,
-      iconHtml: window.NexMark(sym),
-      note: (sym.short ? sym.name + ' · ' : '') + 'Generated series',
-      tail: instTail(sym)
-    };
-  }
-
-  /* The window each figure is measured over: one number, used by the
-     card, the picker and the digit shares alike. */
-  var WINDOW = 120;
-
-  function instTail(sym) {
-    var h = API.feed.history(sym.id);
-    if (!h || !h.length) return '';
-    h = h.slice(-WINDOW);
-    var first = h[0].price, last = h[h.length - 1].price;
-    var pct = first ? (last - first) / first * 100 : 0;
-    var tone = pct > 0 ? 'pos' : pct < 0 ? 'neg' : '';
-    return '<b class="p num">' + last.toFixed(sym.digits) + '</b>' +
-      '<span class="c num ' + tone + '">' + (pct > 0 ? '+' : '') + pct.toFixed(2) + '%</span>';
-  }
-
-  /* Only while the list is open, and only the figures: rebuilding the
-     rows under a finger would lose the scroll position every second. */
-  function refreshPicker() {
-    var host = $('chartInst');
-    if (!host || !host.classList.contains('open')) return;
-    var rows = host.querySelectorAll('.sel-row');
-    for (var i = 0; i < rows.length; i++) {
-      var tail = rows[i].querySelector('.sel-tail');
-      var sym = API.symbol(rows[i].getAttribute('data-val'));
-      if (tail && sym) tail.innerHTML = instTail(sym);
-    }
-  }
-
-  /* ---------- the live figure on the instrument card ----------
-     The price and how far it has moved, over the same last 120 ticks the
-     digit shares below are counted across. One window for everything on
-     this screen: two different "recently"s on one card is a question
-     nobody should have to ask.
-
-     Repainted from renderDigits, which already runs on every tick, so
-     this costs a tick handler rather than a timer of its own. */
-  function renderInstLive(h, meta) {
-    var node = $('instLive');
-    if (!node || !h.length) return;
-    var first = h[0].price, last = h[h.length - 1].price;
-    var chg = last - first;
-    var pct = first ? chg / first * 100 : 0;
-    var tone = chg > 0 ? 'pos' : chg < 0 ? 'neg' : '';
-    var sign = chg > 0 ? '+' : '';
-
-    node.innerHTML =
-      '<span class="p">' + last.toFixed(meta.digits) + '</span>' +
-      '<span class="c ' + tone + '">' + sign + chg.toFixed(meta.digits) +
-        ' (' + sign + pct.toFixed(2) + '%)</span>';
-    node.title = 'Change over the last ' + h.length + ' ticks';
-  }
-
-  /* ---------- contract tabs ---------- */
-  function renderTabs() {
-    /* An icon each, so the three are told apart at a glance rather than
-       by reading three similar pairs of words. The glyph says what the
-       contract asks: a split for parity, a bullseye for hitting one
-       digit, arrows for above and below. */
-    var tabs = [
-      ['even_odd', 'Even / Odd', 'lc-contrast'],
-      ['matches', 'Matches / Differs', 'lc-crosshair'],
-      ['over_under', 'Over / Under', 'lc-arrow-down-up']
-    ];
-    /* The heading only shows where the tabs are a list inside the
-       ticket. Across the top of the chart they are plainly three tabs
-       and a word over them is a word to read. */
-    html(el.tabs, '<span class="label ctabs-h">Contract</span>' + tabs.map(function (t) {
-      return '<button class="ctab' + (S.tab === t[0] ? ' active' : '') + '" data-tab="' + t[0] + '">' +
-        '<i class="ctab-ico">' + I(t[2], 16) + '</i>' +
-        '<span>' + t[1] + '</span>' +
-      '</button>';
-    }).join(''));
-  }
-
-  /* ---------- which column the chooser lives in ----------
-     On a laptop the contract type belongs to the ticket. It was a row of
-     three tabs in the top corner of the chart column, which is the one
-     place on the screen nobody looks while setting up a trade — "I
-     cannot see where you choose Even / Odd" is the whole report. In the
-     right-hand card it is a list of three, above the stake, with the
-     rest of the ticket under it.
-
-     Moved rather than copied: one chooser, one active state. On a phone
-     it goes back where it was, above the chart, because there is only
-     one column there and it is the first thing the page should say. */
-  var wide = null;
-  function placeTabs() {
-    if (!el.tabs) return;
-    /* On a phone they belong inside the pinned head, above the chart and
-       held there with it. Dropped back into .col-mid they would scroll
-       away with the digits, which is the one place they must not be:
-       the chooser has to stay reachable from anywhere in the ticket. */
-    var head = document.querySelector('.terminal .chart-pin') ||
-               document.querySelector('.terminal .col-mid');
-    var right = document.querySelector('.terminal .col-right');
-    if (!head || !right) return;
-    var want = window.matchMedia('(min-width:900px)').matches ? right : head;
-    if (el.tabs.parentElement === want) return;
-    want.insertBefore(el.tabs, want.firstChild);
-  }
-  function watchWidth() {
-    if (!window.matchMedia) return;
-    wide = window.matchMedia('(min-width:900px)');
-    var onChange = function () { placeTabs(); };
-    if (wide.addEventListener) wide.addEventListener('change', onChange);
-    else if (wide.addListener) wide.addListener(onChange);
-  }
-
-  /* ---------- run targets ----------
-     Profit in green, loss in red, the loss multiplier in orange. These
-     are the same three numbers the automated run stops on, so editing
-     one here writes straight through to the saved run settings. */
-  function targetCell(id, label, prefix, value, tone) {
-    return '<div class="tgt ' + tone + '">' +
-      '<span class="tgt-l">' + label + '</span>' +
-      '<span class="tgt-v"><i>' + prefix + '</i>' +
-        '<input id="' + id + '" class="num" value="' + value + '" inputmode="decimal" ' +
-        'autocomplete="off" aria-label="' + label + '"></span>' +
-    '</div>';
-  }
-  function targetsRow(auto) {
-    return '<div class="targets">' +
-      targetCell('tgtTP', 'Target profit', '$', auto.takeProfit, 'pos') +
-      targetCell('tgtSL', 'Stop loss', '$', auto.stopLoss, 'neg') +
-      /* Shown and saved, not applied: every contract in a run is staked
-         the same. */
-      targetCell('tgtMult', 'Loss multiple', '\u00D7', auto.multiplier || 1, 'warn') +
-    '</div>';
-  }
-
-  /* ---------- what this ticket is ----------
-     Four lines under the controls: the instrument, the contract, how long
-     it runs and what it pays. Every one of these was already decided
-     somewhere on the screen — on Markets, in the chooser, in code — and
-     none of them was written down in the one card you read before
-     pressing a side.
-
-     Desktop only. The right-hand card has the height for it and the
-     phone does not; there the same four facts are two thumb-lengths of
-     scrolling away from the buttons, which is worse than not saying
-     them. */
-  function detailRow(k, v) {
-    return '<div class="td-row"><span>' + k + '</span><b>' + v + '</b></div>';
-  }
-  function ticketDetail() {
-    var meta = API.symbol(S.symbol);
-    var sides = sidesFor();
-    var r0 = API.contracts.payoutRate(typeFor(sides[0][0]));
-    var r1 = API.contracts.payoutRate(typeFor(sides[1][0]));
-    function rate(r) { return '+' + ((r - 1) * 100).toFixed(2) + '%'; }
-
-    return '<div class="tdetail">' +
-      detailRow('Instrument', meta.name) +
-      detailRow('Contract', tabLabel()) +
-      detailRow('Duration', S.mode === 'manual' ? CONTRACT_TICKS + ' ticks' : 'Until target or stop') +
-      /* The two sides of a contract do not always pay the same — Matches
-         and Differs are nowhere near each other — so this says one rate
-         only when it is honestly one rate. */
-      (r0 === r1
-        ? detailRow('Payout', rate(r0))
-        : detailRow(sides[0][1], rate(r0)) + detailRow(sides[1][1], rate(r1))) +
-    '</div>';
-  }
-  function tabLabel() {
-    return S.tab === 'even_odd' ? 'Even / Odd'
-      : S.tab === 'matches' ? 'Matches / Differs' : 'Over / Under';
-  }
-
-  /* ---------- panel ---------- */
+  /* ---------- panel: the trade amount ----------
+     The range, one field, and a row of amounts to pick from. */
   function renderPanel() {
-    var today = API.contracts.today();
-    var wins = today.filter(function (c) { return c.status === 'won'; }).length;
-    var losses = today.filter(function (c) { return c.status === 'lost'; }).length;
-    var pnl = today.reduce(function (a, c) { return a + (c.status === 'open' ? 0 : c.profit); }, 0);
-    var auto = API.prefs.auto();
-
-    /* A number line, not a stepper. Picking 7 was six presses of a
-       chevron, and the digit is not a quantity to nudge up and down: it
-       is one of ten choices, all of which fit on one row. */
-    var barrierRow = S.tab === 'even_odd' ? '' :
-      '<div class="barrier">' +
-        '<span class="label">' + (S.tab === 'matches' ? 'Digit to match' : 'Barrier digit') + '</span>' +
-        '<div class="numline">' +
-          [0,1,2,3,4,5,6,7,8,9].map(function (n) {
-            return '<button class="nb' + (n === S.barrier ? ' on' : '') +
-              '" data-digit="' + n + '" aria-pressed="' + (n === S.barrier) + '">' + n + '</button>';
-          }).join('') +
-        '</div>' +
-      '</div>';
-
-    /* The run bar that sat here is gone, and with it the Settings
-       button. It showed "3 of 10 · +$4" and a Stop — both of which the
-       trade button already shows, in amber, with the progress drawn
-       along its own foot. Two of the same control is one to think
-       about, and this one sat between the targets and the buttons they
-       apply to.
-
-       What it also carried was a way into the run settings. The three
-       numbers a run stops on are still editable, in the row directly
-       above; how many contracts it places and the multiplier are not
-       something to be set before every session. */
-
-    /* The three targets are the rules an automated run stops on. In
-       manual mode there is no run to stop, so they were three fields
-       that did nothing sitting above the one control that does. */
-    var targets = S.mode === 'auto' ? targetsRow(auto) : '';
-
-    /* A ticket loaded from the scanner arrives with no card: the market,
-       contract and digit it set are already on the screen. */
-    var scanRow = '';
-
-    /* A strategy being copied, picked on the copy trading page. Said
-       once, with a way to stop, so nobody wonders why it is there. */
-    var copying = null;
-    try { copying = localStorage.getItem('nexas.copy.followingName'); } catch (e) {}
-    var copyRow = !copying ? '' :
-      '<div class="scan-note copy-note">' + I('copy', 15) +
-        '<span>Copying <b>' + String(copying).replace(/</g, '&lt;') + '</b>’s strategy.</span>' +
-        '<button class="scan-x" id="copyStop" aria-label="Stop copying">' + I('close', 14) + '</button>' +
-      '</div>';
-
+    var chips = API.money.stakeChips().chips;
     html(el.panel,
-      copyRow +
-      scanRow +
-      '<div class="seg" id="modeSeg">' +
-        /* The label is wrapped because the capsule behind it is an
-           absolutely positioned pseudo-element, which would otherwise
-           paint over a bare text node. */
-        '<button data-mode="auto" class="' + (S.mode === 'auto' ? 'active' : '') + '"><span>Auto</span></button>' +
-        '<button data-mode="manual" class="' + (S.mode === 'manual' ? 'active' : '') + '"><span>Manual</span></button>' +
+      '<div class="amt-head">' +
+        '<span class="amt-k">Trade amount</span>' +
+        '<span class="amt-range num">$' + F.count(API.money.minStakeUsd()) + ' \u2013 $' + F.count(5000) + '</span>' +
       '</div>' +
-      /* Stake first: it is the field that gets touched on every single
-         trade, and it was below three that are set once and left. */
-      '<div class="stake-block">' +
-        '<div class="stake' + (S.error ? ' invalid' : '') + '">' +
-          '<button id="minus" aria-label="Decrease stake">' + I('minus', 15) + '</button>' +
-          '<div class="f"><input id="stake" value="' + stakeShown() + '" inputmode="decimal" aria-label="Stake">' +
-            '<span class="cur">' + API.money.stakeCurrency() + '</span></div>' +
-          '<button id="plus" aria-label="Increase stake">' + I('plus', 15) + '</button>' +
-        '</div>' +
-        (S.error ? '<div class="field-error" role="alert">' + S.error + '</div>' : '') +
-        '<div class="quick" id="quick">' +
-          API.money.stakeChips().chips.map(function (n) {
-            return '<button data-add="' + n + '">+' + F.count(n) + '</button>';
-          }).join('') +
-        '</div>' +
+      '<div class="amt-box' + (S.error ? ' invalid' : '') + '">' +
+        '<span class="amt-cur">$</span>' +
+        '<input id="stake" class="num" value="' + stakeShown() + '" inputmode="decimal" aria-label="Trade amount">' +
       '</div>' +
-      targets +
-      /* Last, under the automated run box, and in the same place in both
-         modes. It used to sit directly under the stake in manual and
-         above two boxes in auto, so the digit moved down the panel when
-         the mode changed — on the one control somebody reaches for
-         without looking. */
-      barrierRow +
-      ticketDetail() +
-      /* one line, not two: the trade screen is short on height and this
-         is the least load-bearing thing on it */
-      '<div class="session">' +
-        '<span class="num">' + today.length + ' trades · ' + wins + 'W / ' + losses + 'L</span>' +
-        '<span class="num ' + (pnl >= 0 ? 'pos' : 'neg') + '">' + F.signedUsd(pnl) + '</span>' +
+      (S.error ? '<div class="field-error" role="alert">' + S.error + '</div>' : '') +
+      '<div class="amt-chips" id="quick">' +
+        chips.map(function (n) {
+          return '<button type="button" class="' + (n === stakeShown() ? 'on' : '') +
+            '" data-amt="' + n + '">$' + F.count(n) + '</button>';
+        }).join('') +
       '</div>');
   }
 
@@ -421,29 +98,9 @@
      its progress drawn along the bottom of the button itself, that is
      the whole progress display, so nothing has to appear elsewhere on
      the page and push the layout around. */
-  /* The buttons read Buy and Sell on every tab; the first side of the
-     contract is Buy, the second is Sell. */
+  /* Buy wins if the price ends higher than it was bought at, Sell if lower. */
   function sidesFor() {
-    return S.tab === 'even_odd' ? [['even', 'Buy'], ['odd', 'Sell']]
-      : S.tab === 'matches' ? [['matches', 'Buy'], ['differs', 'Sell']]
-      : [['over', 'Buy'], ['under', 'Sell']];
-  }
-
-  /* The contract on the instrument on screen that the last tick
-     settled, if any. Used to tint the live digit; when two settle on
-     the same tick the first is enough, since the circle can only say
-     one thing. */
-  function settledJust() {
-    /* The contract the last tick settled, held until the next tick
-       replaces it. Open contracts are left out on purpose: their ticks
-       are not results yet. */
-    var all = API.contracts.all();
-    for (var j = 0; j < all.length && j < 5; j++) {
-      var c = all[j];
-      if (c.symbol === S.symbol && c.status !== 'open' && c.exitTime &&
-          Date.now() - c.exitTime < ((API.symbol(c.symbol) || {}).rate || 1000) - 50) return c;
-    }
-    return null;
+    return [['rise', 'Buy'], ['fall', 'Sell']];
   }
 
   /* the live contract for a side on this instrument, if any */
@@ -474,7 +131,7 @@
       '<div class="trade-actions">' + sides.map(function (sd, i) {
         var live = runningOn(sd[0]);
         var isRun = S.run && S.run.side === sd[0];
-        var tone = i === 0 ? 'even' : 'odd';
+        var tone = i === 0 ? 'buy' : 'sell';
 
         if (live || isRun) {
           /* A run of several shows how far through it is and where it
@@ -502,16 +159,6 @@
         return '<button class="tbtn ' + tone + '" data-side="' + sd[0] + '"' +
           (blocked || busy ? ' disabled' : '') + '>' +
           '<div class="t">' + sd[1] + '</div>' +
-          /* The figure was a bare "19.53", which is a number with no
-             question attached: it could as easily have been the stake,
-             the price or the balance. It says what it is and what it is
-             in — Payout, in dollars, because the stake above it is
-             dollars — with the rate it works out to on the other end of
-             the row. */
-          '<div class="s payout">' +
-            '<span class="s-k">Payout <b>$' + F.usdAmount(payoutFor(sd[0])) + '</b></span>' +
-            '<span class="s-p">' + pct(sd[0]) + '</span>' +
-          '</div>' +
         '</button>';
       }).join('') + '</div>');
   }
@@ -521,7 +168,7 @@
   function renderActive() { html(el.active, ''); }
 
   function renderAll() {
-    renderTabs(); renderDigits();
+    renderQuote();
     if (!typing()) renderPanel();
     renderDock(); renderActive();
     if (chart) chart.setMarkers(API.contracts.all().filter(function (c) { return c.symbol === S.symbol; }).slice(0, 12));
@@ -529,7 +176,7 @@
 
   /* update the error + CTA state in place, so typing is never interrupted */
   function refreshValidity() {
-    var box = el.panel.querySelector('.stake');
+    var box = el.panel.querySelector('.amt-box');
     if (!box) return renderPanel();
     box.classList.toggle('invalid', !!S.error);
     var err = el.panel.querySelector('.field-error');
@@ -549,7 +196,7 @@
   function typing() {
     var a = document.activeElement;
     if (!a) return false;
-    return a.id === 'stake' || !!(a.closest && a.closest('.targets'));
+    return a.id === 'stake';
   }
 
   /* ---------- the ticks inside a contract ----------
@@ -634,7 +281,7 @@
      one tick, so the digit that lands is the digit that decides it.
      With three, the first digit could land the right way, read as a
      win, and the contract still lose on the third. */
-  var CONTRACT_TICKS = 3;
+  var CONTRACT_TICKS = 5;
   var RUN_TICKS = 1;
   function contractTicks() {
     return S.run ? RUN_TICKS : CONTRACT_TICKS;
@@ -654,7 +301,7 @@
     if (API.account.kind() === 'real' && window.NexNeedAccount && window.NexNeedAccount()) return null;
     var res = API.contracts.buy({
       symbol: S.symbol, type: typeFor(side), side: side,
-      barrier: S.tab === 'even_odd' ? null : S.barrier,
+      barrier: null,
       stake: runningStake(), ticks: runId ? RUN_TICKS : CONTRACT_TICKS, run: runId || null
     });
     if (!res.ok) {
@@ -666,7 +313,7 @@
     S.error = null;
     /* The live circle tints against the open contract, so the row has to
        be repainted the moment there is one rather than on the next tick. */
-    renderPanel(); renderActive(); renderDock(); renderDigits();
+    renderPanel(); renderActive(); renderDock(); renderQuote();
     return res.contract;
   }
 
@@ -910,14 +557,6 @@
     root.addEventListener('click', function (e) {
       var t = e.target;
 
-      var tab = t.closest('[data-tab]');
-      if (tab) {
-        S.tab = tab.getAttribute('data-tab');
-        stopRun();
-        renderAll();
-        return;
-      }
-
       if (t.closest('#scanClear')) { S.fromScan = null; renderPanel(); return; }
       if (t.closest('#copyStop')) {
         try {
@@ -937,26 +576,12 @@
         return;
       }
 
-      var dg = t.closest('[data-digit]');
-      if (dg && S.tab !== 'even_odd') {
-        S.barrier = +dg.getAttribute('data-digit');
-        renderDigits(); renderPanel(); renderDock();
-        return;
-      }
-
-      var bStep = t.closest('[data-barrier]');
-      if (bStep) {
-        S.barrier = Math.max(0, Math.min(9, S.barrier + (+bStep.getAttribute('data-barrier'))));
-        renderDigits(); renderPanel(); renderDock();
-        return;
-      }
-
       var step = API.money.stakeChips().step;
       if (t.closest('#plus')) { setStake(stakeShown() + step); return; }
       if (t.closest('#minus')) { setStake(stakeShown() - step); return; }
 
-      var add = t.closest('[data-add]');
-      if (add) { setStake(stakeShown() + (+add.getAttribute('data-add'))); return; }
+      var amt = t.closest('[data-amt]');
+      if (amt) { setStake(+amt.getAttribute('data-amt')); return; }
 
       var sell = t.closest('[data-sell]');
       if (sell) {
@@ -1069,8 +694,6 @@
     var root = $('terminal');
     if (!root) return;
 
-    el.tabs = $('contractTabs');
-    el.digits = $('digits');
     el.panel = $('panel');
     el.dock = $('dock');
     el.active = $('activeList');
@@ -1094,8 +717,6 @@
     var ticket = API.prefs.takeTicket();
     if (ticket) {
       S.symbol = ticket.symbol || S.symbol;
-      S.tab = ticket.tab || S.tab;
-      if (ticket.barrier != null) S.barrier = ticket.barrier;
       /* A duration on the ticket is ignored: every contract here runs
          five seconds, and the scanner ranks contracts, not durations. */
       /* No stake rides along any more: the scanner found a contract, not
@@ -1106,10 +727,8 @@
     unsub.forEach(function (f) { f(); });
     unsub = [];
     if (chart) { chart.destroy(); chart = null; }
-    placeTabs();
     if (root.__wired) { mounted(); return; }
     root.__wired = true;
-    watchWidth();
     wire(root);
 
     mounted();
@@ -1124,7 +743,7 @@
 
       unsub.push(API.on('tick', function (d) {
         if (d.symbol !== S.symbol) return;
-        renderDigits();
+        renderQuote();
         /* only while something is live, so the idle dock is not rebuilt
            under the finger once a second for no reason */
         if (S.run || API.contracts.open().length) renderDock();
@@ -1133,7 +752,7 @@
       unsub.push(API.on('settled', onSettled));
       document.addEventListener('nex:run', onServerRun);
       unsub.push(function () { document.removeEventListener('nex:run', onServerRun); });
-      unsub.push(API.on('balance', function () { check(); typing() ? refreshValidity() : renderPanel(); }));
+      unsub.push(API.on('balance', function () { check(); renderQuote(); typing() ? refreshValidity() : renderPanel(); }));
       unsub.push(API.on('connection', renderDock));
     });
   }

@@ -69,25 +69,18 @@
         'within two minutes.'
     },
     {
-      targets: ['#chartInst', '#chartPin'],
+      targets: ['#chartPin'],
       icon: 'candles',
-      title: 'Pick a market',
-      body: 'Choose a volatility index here. Each one ticks every second or two, and ' +
-        'the last digit of each price is what the contracts are about.'
+      title: 'Watch the price',
+      body: 'Your balance and the live price sit over the chart. The meter on the right ' +
+        'shows how many recent ticks went up (green) and down (red).'
     },
     {
-      targets: ['#contractTabs'],
-      icon: 'parity',
-      title: 'Choose a contract',
-      body: 'Even or Odd, Matches or Differs, Over or Under: each asks a different ' +
-        'question about that last digit, and pays a different amount.'
-    },
-    {
-      targets: ['#panel', '#modeSeg'],
+      targets: ['#dock', '#panel'],
       icon: 'sliders',
-      title: 'Set your stake and trade',
-      body: 'Manual places a single trade. Auto keeps trading until it reaches your ' +
-        'target profit or stop loss. Set the stake, then press a side at the bottom.'
+      title: 'Buy or Sell',
+      body: 'Pick a trade amount, then press Buy if you think the price will end higher, ' +
+        'or Sell if you think it will end lower.'
     },
     {
       targets: [navTo('AI')],
