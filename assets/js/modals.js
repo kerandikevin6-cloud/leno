@@ -884,7 +884,7 @@
                   '" inputmode="decimal">' +
                 '<span class="suffix">' + pay.cur + '</span></div>' +
                 '<div class="quick amt-chips">' + pay.quick.map(function (n) {
-                  return '<button type="button" data-amount="' + n + '"><small>' + pay.cur + '</small>' + F().count(n) + '</button>';
+                  return '<button type="button" data-amount="' + n + '">' + F().count(n) + '</button>';
                 }).join('') + '</div>' +
                 '<span class="hint">Minimum KSh ' + F().count(API().money.minDepositKes) + '</span>' +
                 charged + '</div>' +

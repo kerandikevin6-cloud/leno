@@ -194,6 +194,7 @@
       /* Stake first: it is the field that gets touched on every single
          trade, and it was below three that are set once and left. */
       '<div class="stake-block">' +
+        '<label class="stake-h" for="stake">Stake amount</label>' +
         '<div class="stake' + (S.error ? ' invalid' : '') + '">' +
           '<button id="minus" aria-label="Decrease stake">' + I('minus', 15) + '</button>' +
           '<div class="f"><input id="stake" value="' + stakeShown() + '" inputmode="decimal" aria-label="Stake">' +
@@ -204,7 +205,7 @@
         '<div class="quick amt-chips" id="quick">' +
           API.money.stakeChips().chips.map(function (n) {
             return '<button type="button" class="' + (n === stakeShown() ? 'on' : '') +
-              '" data-amt="' + n + '"><small>KSh</small>' + F.count(n) + '</button>';
+              '" data-amt="' + n + '">' + F.count(n) + '</button>';
           }).join('') +
         '</div>' +
       '</div>' +
