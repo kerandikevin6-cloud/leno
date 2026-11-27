@@ -181,7 +181,9 @@
        says. That conversion now happens once, at the rail, and is shown
        plainly at the moment it applies rather than being smeared over
        every figure in the product. */
-    return { cur: 'USD', rate: 1 };
+    /* Shillings, at the KES rate. Everything is still held in USD;
+       this is only what is shown. */
+    return { cur: 'KES', rate: COUNTRIES.KE.rate };
   }
 
   /* Push it into the formatter, which is what actually renders money.
@@ -221,23 +223,24 @@
        figure the contract is written for, with nothing converted in
        between and no rounding to explain. Deposits and payouts stay in
        local money, which is where local money belongs. */
-    return { step: 1, chips: [1, 5, 10, 25, 50], start: 10, min: 1 };
+    /* In shillings (display units). minStakeUsd converts the floor. */
+    return { step: 50, chips: [50, 100, 250, 500, 1000], start: 100, min: 50 };
   }
 
   /* What the stake field is denominated in, kept as a function so the
      panel, the AI sheet and any error message all read one answer. */
-  function stakeCurrency() { return 'USD'; }
+  function stakeCurrency() { return 'KSh'; }
 
   /* The floor, already in USD now that the field is. */
   function minStakeUsd() {
-    return stakeChips().min;
+    return stakeChips().min / display().rate;
   }
 
   /* The smallest payout and the smallest deposit, both in dollars like
      everything else on screen. The rail converts; the customer does not
      have to. */
-  function minWithdrawDisplay() { return 10; }
-  function minWithdrawUsd() { return minWithdrawDisplay(); }
+  function minWithdrawUsd() { return 10; }
+  function minWithdrawDisplay() { return Math.ceil(minWithdrawUsd() * display().rate); }
   /* 300 KSh, shown to the customer in KSh. Checked in dollars at the KES rate and rounded up to the
      cent so the shilling charge never lands under 300. */
   var MIN_DEPOSIT_KES = 300;

@@ -128,8 +128,9 @@
      changes per rail is what the customer's bank or handset will
      actually be debited, which is shown as a separate line at the moment
      it applies rather than by pricing the whole product in it. */
-  function payCur() {
-    return { cur: 'USD', rate: 1, min: API().money.minDepositUsd(), quick: [5, 10, 25, 50, 100] };
+  function payCur(m) {
+    if (m === 'usdt') return { cur: 'USD', rate: 1, min: API().money.minDepositUsd(), quick: [5, 10, 25, 50, 100] };
+    return { cur: 'KSh', rate: 1, min: API().money.minDepositKes, quick: [300, 500, 1000, 2500, 5000] };
   }
 
   /* What the phone or the card is actually debited, for a rail that
@@ -143,6 +144,8 @@
      the withdrawal field, kept live by the input handler in app.js.
      Nothing for USDT: that payout is sent in USDT, not shillings. */
   function receiveLine(methodId) {
+    /* The field is in shillings now, which is what lands. */
+    return '';
     if (methodId === 'usdt') return '';
     var c = API().geo.country();
     if (!c.cur || !c.rate || c.rate === 1) return '';
@@ -151,7 +154,8 @@
   }
 
   function railChargeLine(methodId, usd) {
-    if (methodId === 'usdt') return '';
+    /* Typed in shillings (or USDT), so there is nothing to convert. */
+    return '';
     var c = API().geo.country();
     if (!c.cur || !c.rate || c.rate === 1) return '';
     return '<span class="hint" data-charge="amount" data-rate="' + c.rate +
@@ -298,10 +302,10 @@
     var need = A.unlockUsd;
     var left = Math.max(0, Math.round((need - A.deposited()) * 100) / 100);
     return '<div class="notice">' + I('shield', 17) +
-        '<span><b>Final step: deposit ' + need + ' USD.</b> Withdrawals open once ' +
-        need + ' USD has been deposited to your account' +
-        (left < need ? ', ' + left + ' USD to go' : '') + '.</span></div>' +
-      '<button class="btn btn-fill" type="button" data-open="deposit">Deposit ' + need + ' USD</button>';
+        '<span><b>Final step: deposit ' + F().money(need) + '.</b> Withdrawals open once ' +
+        F().money(need) + ' has been deposited to your account' +
+        (left < need ? ', ' + F().money(left) + ' to go' : '') + '.</span></div>' +
+      '<button class="btn btn-fill" type="button" data-open="deposit">Deposit ' + F().money(need) + '</button>';
   }
 
   function kv(k, v, attrs) {
@@ -780,7 +784,7 @@
           function () {
             return kv('Status', '<span class="badge warn">In review</span>') +
               kv('Usually takes', 'Under an hour') +
-              kv('Then', 'Deposit ' + API().account.unlockUsd + ' USD') +
+              kv('Then', 'Deposit ' + F().money(API().account.unlockUsd)) +
               kv('Unlocks', 'Withdrawals');
           })
       }
@@ -868,7 +872,7 @@
                       'It is how we find your transfer and credit this account.</span></div>';
             }
 
-            var pay = payCur();
+            var pay = payCur(m);
             var start = pay.quick[1];
             var floor = pay.min || pay.quick[0];
             var charged = railChargeLine(m, start);
@@ -879,8 +883,8 @@
                 '<div class="input-wrap"><input class="input num" id="amount" value="' + start +
                   '" inputmode="decimal">' +
                 '<span class="suffix">' + pay.cur + '</span></div>' +
-                '<div class="quick">' + pay.quick.map(function (n) {
-                  return '<button type="button" data-amount="' + n + '">' + F().count(n) + '</button>';
+                '<div class="quick amt-chips">' + pay.quick.map(function (n) {
+                  return '<button type="button" data-amount="' + n + '"><small>' + pay.cur + '</small>' + F().count(n) + '</button>';
                 }).join('') + '</div>' +
                 '<span class="hint">Minimum KSh ' + F().count(API().money.minDepositKes) + '</span>' +
                 charged + '</div>' +
@@ -1243,19 +1247,19 @@
 
             return '<div class="wd">' +
               '<div class="wd-avail">' +
-                '<span class="wd-avail-ico">$</span>' +
+                '<span class="wd-avail-ico">KSh</span>' +
                 '<span class="wd-avail-l">Available for withdrawal</span>' +
-                '<b class="num">$' + F().amount(bal) + '</b>' +
+                '<b class="num">' + F().money(bal) + '</b>' +
               '</div>' +
               '<div class="wd-tabs">' +
                 tab('mpesa', 'phone', 'M-Pesa') + tab('card', 'card', 'Bank') + tab('usdt', 'coin', 'USDT') +
               '</div>' +
               '<div class="wd-card modal-form">' +
                 inner +
-                '<div class="field"><label for="wAmount">Withdrawal amount (USD)</label>' +
-                  '<div class="wd-amount"><span>$</span><input class="input num" id="wAmount" ' +
+                '<div class="field"><label for="wAmount">Withdrawal amount (KSh)</label>' +
+                  '<div class="wd-amount"><span>KSh</span><input class="input num" id="wAmount" ' +
                     'placeholder="0.00" inputmode="decimal"></div>' +
-                  '<div class="wd-limits"><span>Min: $' + F().localAmount(minLocal) + '</span>' +
+                  '<div class="wd-limits"><span>Min: KSh ' + F().count(minLocal) + '</span>' +
                     receiveLine(m) + '</div>' +
                 '</div>' +
                 (!API().kyc.verified()
@@ -1263,7 +1267,7 @@
                     '<span>Identity verification is required before your first payout.</span></div>'
                   : !API().account.withdrawUnlocked()
                     ? '<div class="notice">' + I('shield', 17) +
-                      '<span>Deposit ' + API().account.unlockUsd + ' USD to unlock withdrawals.</span></div>'
+                      '<span>Deposit ' + F().money(API().account.unlockUsd) + ' to unlock withdrawals.</span></div>'
                     : '') +
                 act('Withdraw to ' + (m === 'card' ? 'bank' : NAMES[m]), 'withdraw', 'btn-pos wd-go') +
               '</div>' +
@@ -1289,7 +1293,7 @@
           noBack: true,
           body: function (s) {
             var c = API().geo.country() || {};
-            var local = c.cur && c.rate && c.rate !== 1 && c.cur !== 'USD'
+            var local = false
               ? '<div class="wd-ok-local">\u2248 ' + c.cur + ' ' +
                 F().count(Math.round((s.sent || 0) * c.rate)) + '</div>'
               : '';
@@ -1300,7 +1304,7 @@
                 '<button class="wd-ok-x" type="button" data-close aria-label="Close">' + I('close', 16) + '</button>' +
                 '<span class="wd-ok-mark"><i>' + I('check', 26) + '</i></span>' +
                 '<div class="wd-ok-k">Withdrawal requested</div>' +
-                '<div class="wd-ok-v num">$' + F().amount(s.sent) + '</div>' +
+                '<div class="wd-ok-v num">' + F().money(s.sent) + '</div>' +
                 local +
               '</div>' +
               '<div class="wd-ok-body">' +

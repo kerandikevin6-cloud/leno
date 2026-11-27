@@ -88,8 +88,8 @@
   }
   function targetsRow(auto) {
     return '<div class="targets">' +
-      targetCell('tgtTP', 'Target profit', '$', auto.takeProfit, 'pos') +
-      targetCell('tgtSL', 'Stop loss', '$', auto.stopLoss, 'neg') +
+      targetCell('tgtTP', 'Target profit', 'KSh', Math.round(F.toDisplay(auto.takeProfit)), 'pos') +
+      targetCell('tgtSL', 'Stop loss', 'KSh', Math.round(F.toDisplay(auto.stopLoss)), 'neg') +
       /* Shown and saved, not applied: every contract in a run is staked
          the same. */
       targetCell('tgtMult', 'Loss multiple', '\u00D7', auto.multiplier || 1, 'warn') +
@@ -191,13 +191,6 @@
     html(el.panel,
       copyRow +
       scanRow +
-      '<div class="seg" id="modeSeg">' +
-        /* The label is wrapped because the capsule behind it is an
-           absolutely positioned pseudo-element, which would otherwise
-           paint over a bare text node. */
-        '<button data-mode="auto" class="' + (S.mode === 'auto' ? 'active' : '') + '"><span>Auto</span></button>' +
-        '<button data-mode="manual" class="' + (S.mode === 'manual' ? 'active' : '') + '"><span>Manual</span></button>' +
-      '</div>' +
       /* Stake first: it is the field that gets touched on every single
          trade, and it was below three that are set once and left. */
       '<div class="stake-block">' +
@@ -208,9 +201,10 @@
           '<button id="plus" aria-label="Increase stake">' + I('plus', 15) + '</button>' +
         '</div>' +
         (S.error ? '<div class="field-error" role="alert">' + S.error + '</div>' : '') +
-        '<div class="quick" id="quick">' +
+        '<div class="quick amt-chips" id="quick">' +
           API.money.stakeChips().chips.map(function (n) {
-            return '<button data-add="' + n + '">+' + F.count(n) + '</button>';
+            return '<button type="button" class="' + (n === stakeShown() ? 'on' : '') +
+              '" data-amt="' + n + '"><small>KSh</small>' + F.count(n) + '</button>';
           }).join('') +
         '</div>' +
       '</div>' +
@@ -720,8 +714,8 @@
       if (t.closest('#plus')) { setStake(stakeShown() + step); return; }
       if (t.closest('#minus')) { setStake(stakeShown() - step); return; }
 
-      var add = t.closest('[data-add]');
-      if (add) { setStake(stakeShown() + (+add.getAttribute('data-add'))); return; }
+      var amt = t.closest('[data-amt]');
+      if (amt) { setStake(+amt.getAttribute('data-amt')); return; }
 
       var sell = t.closest('[data-sell]');
       if (sell) {
@@ -774,8 +768,8 @@
         refreshValidity();
         return;
       }
-      if (id === 'tgtTP') API.prefs.setAuto({ takeProfit: Math.max(0, +e.target.value || 0) });
-      else if (id === 'tgtSL') API.prefs.setAuto({ stopLoss: Math.max(0, +e.target.value || 0) });
+      if (id === 'tgtTP') API.prefs.setAuto({ takeProfit: Math.max(0, F.fromDisplay(e.target.value)) });
+      else if (id === 'tgtSL') API.prefs.setAuto({ stopLoss: Math.max(0, F.fromDisplay(e.target.value)) });
       else if (id === 'tgtMult') API.prefs.setAuto({ multiplier: Math.max(1, +e.target.value || 1) });
     });
     root.addEventListener('blur', function (e) {
@@ -794,12 +788,12 @@
      Round in display units, not USD: rounding the dollars first leaves
      the shillings showing 4,999.87 after somebody typed 5,000. */
   function stakeShown() {
-    return Math.round(S.stake * 100) / 100;
+    return Math.round(F.toDisplay(S.stake));
   }
   function setStakeShown(shown) {
-    S.stake = Math.max(0, Math.round((+shown || 0) * 100) / 100);
-    /* Remembered, so leaving the terminal and coming back opens on the
-       stake the trader chose rather than the default. */
+    /* Typed in shillings, held in dollars at full precision so 100 KSh
+       stays 100 KSh on the way back. */
+    S.stake = Math.max(0, F.fromDisplay(+shown || 0));
     API.prefs.setStake(S.stake);
   }
 
@@ -843,7 +837,7 @@
        a first mount, so a stake mid-session is never overwritten. */
     if (!root.__stakeSet) {
       root.__stakeSet = true;
-      S.stake = API.prefs.stake() || API.money.stakeChips().start;
+      S.stake = API.prefs.stake() || F.fromDisplay(API.money.stakeChips().start);
     }
 
     /* Markets is where an instrument is chosen; this is where that choice

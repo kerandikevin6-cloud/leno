@@ -21,6 +21,12 @@
 
   function local(v) { return (+v || 0) * rate; }
 
+  /* "KSh 1,290.00" for shillings, "1,290.00 UGX" for anything else. */
+  function label(num, cur) {
+    cur = cur || currency;
+    return cur === 'KES' || cur === 'KSh' ? 'KSh ' + num : num + ' ' + cur;
+  }
+
   function nf(min, max) {
     return new Intl.NumberFormat(locale, { minimumFractionDigits: min, maximumFractionDigits: max });
   }
@@ -53,29 +59,31 @@
     /* 1,250.00 USD. Takes USD and leaves it there: for the few figures
        that are quoted in dollars whatever the viewer's currency is, the
        stake among them. */
-    usd: function (v) { return n2.format(+v || 0) + ' USD'; },
-    usdAmount: function (v) { return n2.format(+v || 0); },
+    /* The site shows shillings everywhere now, so the figures that used
+       to be quoted in dollars convert like the rest. */
+    usd: function (v) { return label(n2.format(local(v))); },
+    usdAmount: function (v) { return n2.format(local(v)); },
 
     /* 2,480.00 KES, currency after the figure, the way traders read it */
-    money: function (v, cur) { return n2.format(local(v)) + ' ' + (cur || currency); },
+    money: function (v, cur) { return label(n2.format(local(v)), cur); },
 
     /* +12.40 / −3.05, always signed */
     signed: function (v) {
       var x = local(v);
       return (x > 0 ? '+' : x < 0 ? '−' : '') + n2.format(Math.abs(x));
     },
-    signedMoney: function (v, cur) { return F.signed(v) + ' ' + (cur || currency); },
+    signedMoney: function (v, cur) {
+      var x = local(v);
+      return (x > 0 ? '+' : x < 0 ? '−' : '') + label(n2.format(Math.abs(x)), cur);
+    },
 
     /* Signed, in dollars, for the figures that sit beside a stake. */
-    signedUsd: function (v) {
-      var x = +v || 0;
-      return (x > 0 ? '+' : x < 0 ? '−' : '') + n2.format(Math.abs(x)) + ' USD';
-    },
+    signedUsd: function (v) { return F.signedMoney(v); },
 
     /* Already in display units, formatted, never converted. Deposit and
        withdrawal sheets work in local money from the start. */
     localAmount: function (v) { return n2.format(+v || 0); },
-    localMoney: function (v, cur) { return n2.format(+v || 0) + ' ' + (cur || currency); },
+    localMoney: function (v, cur) { return label(n2.format(+v || 0), cur); },
 
     /* 0.42% */
     pct: function (v, digits) {

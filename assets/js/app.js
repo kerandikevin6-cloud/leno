@@ -582,11 +582,11 @@
     /* Both balances are dollars, so both carry the same flag. A
        Kenyan flag beside a figure in USD was the old local-money layer
        leaving a fingerprint. */
-    return '<span class="acct-flag">' + (flag('US') || '') + '</span>' +
+    return '<span class="acct-flag">' + (flag('KE') || '') + '</span>' +
       '<span class="acct-txt">' +
         '<span class="acct-kind">' + kind + '</span>' +
-        '<span class="bal num">$' +
-          (real ? F.usdAmount(API.account.displayBalance()) : F.amount(API.account.displayBalance())) +
+        '<span class="bal num">KSh ' +
+          F.amount(API.account.displayBalance()) +
         '</span>' +
       '</span>' + icon('chevD', 12);
   }
@@ -2202,14 +2202,16 @@
     if (name === 'deposit') {
       clearErrors();
       var box = document.getElementById('amount');
-      /* Typed in dollars, like everything else on screen. */
-      var usd = +((box || {}).value) || 0;
+      /* Typed in shillings for M-Pesa and card, in dollars for USDT. */
+      var typed = +((box || {}).value) || 0;
       var pay = API.geo.country();
+      var isUsdt = state.data.method === 'usdt';
+      var usd = isUsdt ? typed : F.fromDisplay(typed);
 
-      var floor = API.money.minDepositUsd();
-      if (usd <= 0) return fieldError('amount', 'Enter an amount to deposit');
-      if (usd < floor) return fieldError('amount',
-        'Minimum deposit is KSh ' + F.count(API.money.minDepositKes));
+      if (typed <= 0) return fieldError('amount', 'Enter an amount to deposit');
+      if (isUsdt ? usd < API.money.minDepositUsd() : typed < API.money.minDepositKes) {
+        return fieldError('amount', 'Minimum deposit is KSh ' + F.count(API.money.minDepositKes));
+      }
 
       /* Neither M-Pesa nor the card processor charges dollars here, so
          the rail is asked for the shilling equivalent while the customer
@@ -2218,7 +2220,7 @@
       var toRail = state.data.method !== 'usdt' && pay.rate && pay.rate !== 1;
       var rate = toRail ? pay.rate : 1;
       var money = toRail ? pay.cur : 'USD';
-      var amount = Math.round(usd * rate * 100) / 100;
+      var amount = toRail && pay.cur === 'KES' ? typed : Math.round(usd * rate * 100) / 100;
 
       if (state.data.method === 'mpesa') {
         var ph = document.getElementById('mpesaPhone');
@@ -2257,7 +2259,7 @@
       }
 
       state.data.payLabel = F.count(amount) + ' ' + money;
-      state.data.credited = Math.round(usd * 100) / 100;
+      state.data.credited = Math.round(usd * 10000) / 10000;
 
       if (window.NexNet && window.NexNet.live) return liveDeposit(amount, money, state.data.payTo || '');
 

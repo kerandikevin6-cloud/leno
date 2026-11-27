@@ -76,12 +76,11 @@
         'shows how many recent ticks went up (green) and down (red).'
     },
     {
-      targets: ['#panel', '#modeSeg'],
+      targets: ['#panel'],
       icon: 'sliders',
       title: 'Set your stake and trade',
-      body: 'Manual places a single trade. Auto keeps trading until it reaches your ' +
-        'target profit or stop loss. Set the stake, then press Buy if you think the ' +
-        'price will end higher, or Sell if lower.'
+      body: 'Set your stake, target profit and stop loss. Then press Buy if you think the ' +
+        'price will end higher, or Sell if lower; trading carries on until the target or stop is hit.'
     },
     {
       targets: ['.ai-fab'],
