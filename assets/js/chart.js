@@ -1,6 +1,6 @@
 /* ============================================================
    LenoBinary, chart
-   Canvas price chart: line or candles, zoom and pan, a crosshair
+   Canvas price chart: bars (candles), zoom and pan, a crosshair
    readout, and markers for the contracts currently running.
    Redraws on requestAnimationFrame and only while visible.
    ============================================================ */
@@ -15,11 +15,11 @@
     this.cv = canvas;
     this.ctx = canvas.getContext('2d');
     this.symbol = opts.symbol;
-    /* The site picks its chart in config.js (NEX_CHART): a line, or bars
-       of a few ticks each. */
+    /* Bars only (config.js, NEX_CHART): ten ticks to a bar and 120 ticks
+       on screen, so about a dozen wide bars fill the chart. */
     var cfg = window.NEX_CHART || {};
-    this.type = cfg.type || 'line';   /* line | candle */
-    this.agg = cfg.agg || 1;          /* points per candle */
+    this.type = 'candle';
+    this.agg = cfg.agg || 10;         /* points per candle */
     this.count = cfg.count || 120;    /* visible points */
     window.NexChartLive = this;
     this.offset = 0;           /* points scrolled back from the live edge */
@@ -83,12 +83,11 @@
   };
 
   Chart.prototype.setSymbol = function (s) { this.symbol = s; this.offset = 0; this.dirty = true; };
-  Chart.prototype.setType = function (t) { this.type = t; this.dirty = true; };
-  Chart.prototype.setAgg = function (n) { this.agg = n; this.dirty = true; };
+    Chart.prototype.setAgg = function (n) { this.agg = n; this.dirty = true; };
   Chart.prototype.setMarkers = function (list) { this.markers = list || []; this.dirty = true; };
   Chart.prototype.zoom = function (factor) {
     var max = Math.min(this.data().length, 400);
-    this.count = Math.max(30, Math.min(max, Math.round(this.count * factor)));
+    this.count = Math.max(this.agg * 4, Math.min(max, Math.round(this.count * factor)));
     this.offset = Math.max(0, Math.min(this.data().length - this.count, this.offset));
     this.dirty = true;
   };
@@ -186,7 +185,7 @@
 
     /* series */
     if (candles) {
-      var cw = Math.max(3, (w / candles.length) * 0.72);
+      var cw = Math.max(3, (w / candles.length) * 0.66);
       for (i = 0; i < candles.length; i++) {
         var c = candles[i];
         var cx = (i + 0.5) / candles.length * w;
@@ -226,8 +225,6 @@
     ctx.strokeStyle = css('--chart-axis'); ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(0, Math.round(ly) + 0.5); ctx.lineTo(w, Math.round(ly) + 0.5); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.beginPath(); ctx.arc(X(points.length - 1), ly, 2.8, 0, Math.PI * 2);
-    ctx.fillStyle = css('--chart-line'); ctx.fill();
     /* Green, white figures: the price the line has just reached is the
        one number on the axis anybody is reading, so it stands out. */
     this._tag(lastPt.price.toFixed(this.dp()), ly, css('--accent-fill'), '#fff', css('--accent-fill'));
@@ -278,36 +275,6 @@
     window.removeEventListener('resize', this._onResize);
     this.dead = true;
   };
-
-  /* ---------- line / bars switch, like obisflow's chart-type button ----------
-     One button at the top of the zoom tools. Its icon shows what's on screen;
-     a tap swaps line for bars of five ticks, and back. */
-  var ICO_LINE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>';
-  var ICO_BARS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5v4"></path><rect width="4" height="6" x="7" y="9" rx="1"></rect><path d="M9 15v2"></path><path d="M17 3v2"></path><rect width="4" height="8" x="15" y="5" rx="1"></rect><path d="M17 13v3"></path><path d="M3 3v16a2 2 0 0 0 2 2h16"></path></svg>';
-  function typeSwitch() {
-    var tools = document.querySelector('.chart-card .chart-tools');
-    if (!tools || document.getElementById('typeBtn')) return;
-    var cfg = window.NEX_CHART = window.NEX_CHART || { type: 'line', agg: 1, count: 120 };
-    var btn = document.createElement('button');
-    btn.type = 'button'; btn.id = 'typeBtn';
-    function paint() {
-      var bars = cfg.type === 'candle' && cfg.agg > 1;
-      btn.innerHTML = bars ? ICO_BARS : ICO_LINE;
-      btn.setAttribute('aria-label', bars ? 'Bars chart, switch to line' : 'Line chart, switch to bars');
-      btn.title = bars ? 'Bars' : 'Line';
-    }
-    paint();
-    tools.insertBefore(btn, tools.firstChild);
-    btn.addEventListener('click', function () {
-      var bars = !(cfg.type === 'candle' && cfg.agg > 1);
-      cfg.type = bars ? 'candle' : 'line'; cfg.agg = bars ? 5 : 1; cfg.count = bars ? 160 : 120;
-      var c = window.NexChartLive;
-      if (c) { c.type = cfg.type; c.agg = cfg.agg; c.count = cfg.count; c.offset = 0; c.dirty = true; }
-      paint();
-    });
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', typeSwitch);
-  else typeSwitch();
 
   window.NexChart = {
     create: function (canvas, opts) { return new Chart(canvas, opts || {}); }

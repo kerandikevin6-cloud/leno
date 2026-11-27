@@ -2202,7 +2202,7 @@
       var floor = API.money.minDepositUsd();
       if (usd <= 0) return fieldError('amount', 'Enter an amount to deposit');
       if (usd < floor) return fieldError('amount',
-        'Minimum deposit is ' + F.count(floor) + ' USD');
+        'Minimum deposit is KSh ' + F.count(API.money.minDepositKes));
 
       /* Neither M-Pesa nor the card processor charges dollars here, so
          the rail is asked for the shilling equivalent while the customer

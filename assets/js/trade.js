@@ -421,10 +421,12 @@
      its progress drawn along the bottom of the button itself, that is
      the whole progress display, so nothing has to appear elsewhere on
      the page and push the layout around. */
+  /* The buttons read Buy and Sell on every tab; the first side of the
+     contract is Buy, the second is Sell. */
   function sidesFor() {
-    return S.tab === 'even_odd' ? [['even', 'Even'], ['odd', 'Odd']]
-      : S.tab === 'matches' ? [['matches', 'Matches ' + S.barrier], ['differs', 'Differs ' + S.barrier]]
-      : [['over', 'Over ' + S.barrier], ['under', 'Under ' + S.barrier]];
+    return S.tab === 'even_odd' ? [['even', 'Buy'], ['odd', 'Sell']]
+      : S.tab === 'matches' ? [['matches', 'Buy'], ['differs', 'Sell']]
+      : [['over', 'Buy'], ['under', 'Sell']];
   }
 
   /* The contract on the instrument on screen that the last tick

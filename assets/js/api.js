@@ -234,7 +234,12 @@
      have to. */
   function minWithdrawDisplay() { return 10; }
   function minWithdrawUsd() { return minWithdrawDisplay(); }
-  function minDepositUsd() { return 5; }
+  /* 300 KSh, shown to the customer in KSh. Checked in dollars at the KES rate and rounded up to the
+     cent so the shilling charge never lands under 300. */
+  var MIN_DEPOSIT_KES = 300;
+  function minDepositUsd() {
+    return Math.ceil(MIN_DEPOSIT_KES / COUNTRIES.KE.rate * 100) / 100;
+  }
 
   /* Timezone is a decent offline guess and costs no request, so it seeds
      the value before the IP lookup comes back (and stands in for it if the
@@ -1042,6 +1047,7 @@
       minWithdrawDisplay: minWithdrawDisplay,
       minWithdrawUsd: minWithdrawUsd,
       minDepositUsd: minDepositUsd,
+      minDepositKes: MIN_DEPOSIT_KES,
       stakeChips: stakeChips,
       minStakeUsd: minStakeUsd
     },

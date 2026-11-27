@@ -793,9 +793,8 @@
           title: 'Deposit funds',
           sub: 'Funds land in the account you are trading. No fee from LenoBinary.',
           body: function () {
-            var lo = API().money.minDepositUsd();
             return method('mpesa', 'phone', 'M-Pesa',
-                'Instant · USD ' + F().count(lo) + ' - ' + F().count(1200)) +
+                'Instant · minimum KSh ' + F().count(API().money.minDepositKes)) +
               method('card', 'card', 'Card', 'Visa and Mastercard · secured by Paystack') +
               method('usdt', 'coin', 'USDT', 'TRC-20 only · credited after one confirmation');
           }
@@ -883,7 +882,7 @@
                 '<div class="quick">' + pay.quick.map(function (n) {
                   return '<button type="button" data-amount="' + n + '">' + F().count(n) + '</button>';
                 }).join('') + '</div>' +
-                '<span class="hint">Minimum ' + F().count(floor) + ' ' + pay.cur + '</span>' +
+                '<span class="hint">Minimum KSh ' + F().count(API().money.minDepositKes) + '</span>' +
                 charged + '</div>' +
               inner +
               (m === 'card'

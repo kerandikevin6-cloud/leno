@@ -40,6 +40,5 @@ window.NEXAS_CONFIG = {
    it with one inline script tag without editing config.js. */
 window.NEXAS_API = window.NEXAS_API || window.NEXAS_CONFIG.apiBase;
 
-/* Line by default; the button over the zoom tools swaps to bars
-   (chart.js reads this). */
-window.NEX_CHART = { type: 'line', agg: 1, count: 120 };
+/* Bars only: ten ticks a bar, 120 ticks on screen (chart.js reads this). */
+window.NEX_CHART = { type: 'candle', agg: 10, count: 120 };
