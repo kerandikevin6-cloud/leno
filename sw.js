@@ -17,15 +17,15 @@
    It does not need bumping every deploy. The header says revalidate
    now, so from here on a changed file is picked up by asking. This is
    the one-time way out of the year that was already promised. */
-var CACHE = 'tradeswif-v2';
+var CACHE = 'tradeswif-v3';
 var SHELL = [
   'index.html', 'ai.html', 'markets.html', 'positions.html', 'learn.html', 'responsible.html', 'account.html',
   'chat.html', 'history.html', 'copy.html', 'terms.html', 'privacy.html', 'risk.html',
   'security.html', 'complaints.html', 'login.html', 'signup.html', 'forgot-password.html', 'reset-password.html',
-  'assets/css/app.css?v=20261127m',
-  'assets/js/config.js?v=20261127m', 'assets/js/countries.js?v=20261127m', 'assets/js/net.js?v=20261127m', 'assets/js/format.js?v=20261127m', 'assets/js/api.js?v=20261127m', 'assets/js/chart.js?v=20261127m',
-  'assets/js/modals.js?v=20261127m', 'assets/js/trade.js?v=20261127m', 'assets/js/positions.js?v=20261127m',
-  'assets/js/ai.js?v=20261127m', 'assets/js/tour.js?v=20261127m', 'assets/js/app.js?v=20261127m',
+  'assets/css/app.css?v=20261127n',
+  'assets/js/config.js?v=20261127n', 'assets/js/countries.js?v=20261127n', 'assets/js/net.js?v=20261127n', 'assets/js/format.js?v=20261127n', 'assets/js/api.js?v=20261127n', 'assets/js/chart.js?v=20261127n',
+  'assets/js/modals.js?v=20261127n', 'assets/js/trade.js?v=20261127n', 'assets/js/positions.js?v=20261127n',
+  'assets/js/ai.js?v=20261127n', 'assets/js/tour.js?v=20261127n', 'assets/js/app.js?v=20261127n',
   'assets/mpesa.png', 'assets/cards.png', 'assets/cards-ink.png',
   'assets/share-card-ts.png',
   'assets/favicon-ts.ico', 'assets/favicon-32-ts.png', 'assets/favicon-192-ts.png',

@@ -1633,19 +1633,19 @@
   /* ---------- password rules ----------
      One source of truth: the meter, the live checklist and the submit
      check all read these, so they can never disagree. */
+  /* One rule: 4 characters or more, so a 4-digit PIN is fine. The
+     backend checks the same. */
   var PW_RULES = [
-    { id: 'len',    test: function (v) { return v.length >= 8; },
-      msg: 'Use at least 8 characters' },
-    { id: 'case',   test: function (v) { return /[a-z]/.test(v) && /[A-Z]/.test(v); },
-      msg: 'Include an upper and a lower case letter' },
-    { id: 'digit',  test: function (v) { return /\d/.test(v); },
-      msg: 'Include a number' },
-    { id: 'symbol', test: function (v) { return /[^A-Za-z0-9]/.test(v); },
-      msg: 'Include a symbol' }
+    { id: 'len', test: function (v) { return v.length >= 4; },
+      msg: 'Use at least 4 characters' }
   ];
+  /* The meter is a hint only: longer and more varied fills more bars. */
   function pwScore(v) {
     var n = 0;
-    for (var i = 0; i < PW_RULES.length; i++) if (PW_RULES[i].test(v)) n++;
+    if (v.length >= 4) n++;
+    if (v.length >= 8) n++;
+    if (/\d/.test(v) && /[A-Za-z]/.test(v)) n++;
+    if (/[^A-Za-z0-9]/.test(v) || v.length >= 12) n++;
     return n;
   }
   function pwFirstFailure(v) {

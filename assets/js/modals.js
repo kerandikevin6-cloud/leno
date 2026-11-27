@@ -659,13 +659,10 @@
           body: function () {
             return '<div class="modal-form">' +
               secret('currentPassword', 'Current password', '••••••••') +
-              secret('newPassword', 'New password', 'At least 8 characters', true) +
+              secret('newPassword', 'New password', 'At least 4 characters', true) +
               secret('confirmPassword', 'Confirm new password', 'Repeat new password') +
               '<ul class="rules" id="pwRules">' +
-                '<li data-rule="len">At least 8 characters</li>' +
-                '<li data-rule="case">An upper and a lower case letter</li>' +
-                '<li data-rule="digit">A number</li>' +
-                '<li data-rule="symbol">A symbol</li>' +
+                '<li data-rule="len">At least 4 characters (a 4-digit PIN works)</li>' +
               '</ul>' +
               act('Update password', 'savePassword') +
             '</div>';
