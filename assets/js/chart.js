@@ -166,8 +166,6 @@
     /* grid + price axis */
     for (var g = 0; g <= 4; g++) {
       var gy = this.padT + h * g / 4;
-      ctx.strokeStyle = css('--chart-grid'); ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(0, Math.round(gy) + 0.5); ctx.lineTo(w, Math.round(gy) + 0.5); ctx.stroke();
       ctx.fillStyle = css('--chart-axis');
       ctx.fillText((max - span * g / 4).toFixed(this.dp()), w + 9, gy);
     }

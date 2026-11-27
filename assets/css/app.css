@@ -4343,28 +4343,25 @@ body.no-tabs .ai-fab{bottom:calc(16px + env(safe-area-inset-bottom))}
 .ai-fab .msym{font-size:21px}
 
 
-/* ---- skyline behind the bars ----
-   A city silhouette at the foot of the chart, faint enough that the
-   bars stay the brightest thing in it. */
+/* ---- clean square grid behind the bars ---- */
 .terminal .chart-card{position:relative}
-.terminal .chart-card::before{
-  content:"";position:absolute;left:0;right:40px;bottom:0;height:78%;
-  background:url(../skyline.svg) center bottom / cover no-repeat;
-  opacity:.035;pointer-events:none;z-index:0;
+.terminal .chart-card #chart{position:relative;z-index:1}
+.terminal .chart-card #chart{height:clamp(240px, 40dvh, 340px)}
+@media (min-width:900px){
+  .terminal .chart-pin #chart{min-height:min(50vh,440px)}
 }
-:root[data-theme="light"] .terminal .chart-card::before{filter:invert(1);opacity:.03}
 /* Graph-paper lines over the whole chart, like a maths exercise book. */
 .terminal .chart-card::after{
-  content:"";position:absolute;inset:0 40px 0 0;pointer-events:none;z-index:0;
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
   background-image:
-    linear-gradient(to right, rgba(255,255,255,.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,.05) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255,255,255,.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,.03) 1px, transparent 1px);
   background-size:24px 24px;
 }
 :root[data-theme="light"] .terminal .chart-card::after{
   background-image:
-    linear-gradient(to right, rgba(0,0,0,.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0,0,0,.06) 1px, transparent 1px);
+    linear-gradient(to right, rgba(0,0,0,.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,.04) 1px, transparent 1px);
 }
 .terminal .chart-card #chart{position:relative;z-index:1}
 .terminal .chart-card #chart{height:clamp(240px, 40dvh, 340px)}
