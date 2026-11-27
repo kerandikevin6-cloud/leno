@@ -1081,7 +1081,7 @@
     referrals: {
       tiers: BOOST_TIERS,
       code: referralCode,
-      link: function () { return 'https://lenobinary.com/r/' + referralCode(); },
+      link: function () { return 'https://tradeswif.com/r/' + referralCode(); },
       list: function () { seedReferrals(); return S.referrals.slice(); },
       count: function () { seedReferrals(); return S.referrals.length; },
       funded: fundedCount,
