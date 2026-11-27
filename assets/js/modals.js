@@ -347,9 +347,9 @@
                number about money this visitor does not have. */
             return '<div class="choices">' +
               (canReal
-                ? row('real', 'Real', cur + ' · live funds', F().amount(b.real), 'KE')
-                : row('real', 'Real', 'Create an account to trade real funds', 'Sign up', 'KE')) +
-              row('demo', 'Demo', cur + ' · practice funds', F().amount(b.demo), 'KE') +
+                ? row('real', 'Real', cur + ' · live funds', F().amount(b.real))
+                : row('real', 'Real', 'Create an account to trade real funds', 'Sign up')) +
+              row('demo', 'Demo', cur + ' · practice funds', F().amount(b.demo)) +
             '</div><p class="hint" style="margin:14px 2px 0">' +
               (canReal
                 ? 'Open positions stay with the account they were taken on.'

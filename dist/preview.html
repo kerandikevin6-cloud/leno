@@ -1,5 +1,5 @@
 <title>TradeSwif Terminal</title>
-<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABOUlEQVR4nOxVTWrCQBj9Yl3UTaj7XKBeoCkt9BBtMTTrlq5EMHgHdcDoFUSJxJ8bCIJidKmgayEbr+DKDweGSOJk0GQh5i3CS2by3sz7PmbS2ewTxIkUxIzE4A4M0nA1WvqO8cGyNlwR72gSkaq+QHwGiqJ0rc52tEdu233Xdf1zpIvPIlSfTsaUm2azbjYCp12+A0IqlNi9/jl1ECmyZbXZSr0fX1UVycxxDKPM+T0Vqo5CNA18+tU1Tecr8GrAhCiwhnlN//76LBYL9PXt/QPCcNbAu8y5s2CidB9ISkYZRyAMD5nMI18dQ0AhCSRseVmW6YTfv38R9WCDwIiZB/K89iOoDv6I+AXEAsCxL0EYJwaEVKmESHsI4iSi9XqTyz1jAaNSB39E2CSBR0pkBpEjufQTgxswOAAAAP//iGVDEgAAAAZJREFUAwAw1YOpcq+00AAAAABJRU5ErkJggg==">
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAEGklEQVR4nO2W308cVRTH77k7P3Z2psNC6aZCoIbGNDFGBbEam4CpUNsHEQimaZs+2FjKNvqgsX8IBh4ktuFH+2Liq0krBvfBGHdLS0xsalJNWSgbWHaHHWBnZ+6de83+gC3sLiyJffO8zr2f77nn3O+5A7W1fvQiA79QOvpf4L/qAQAGqLQSADwIQaW9QjV0QtKIc1FSS78xlzr2uiipGGPO+YEFAMCxN442tCKA2OJ9wLlz5DmAOHMVX13Ty+8uLcxSYmFBQiUaewkAeBzbfPX18z3nbxHHfrYQzu4HyFMgl76mNzQ2v/bkceiHOwOuS7IZ7NTYWwAQ4m3vDImSSBy75ZXT2+ljT2GNS9HmRvr4ic7G5pN//3VX9vo5cqtqMgAQQih1H0bGnExGljXGEGeFM6yblplKm6blOBYAUMoq9VnYgx4IBBCqn4tMra48OqS/5LoMAASPZyUev3Zt8OKlixnLDP2mLC2D7K2YqFCJruv61c+uYIzHxm4+W5zDeC67WhBSqcyVTy/c+PIjStdUTXn4p7CwtKMmu2K3MgBwzl3X7frgtN/vZ4xxxEXR51X8qnY4lbKvB4M3b922LOZT60K//BqJPFBVmbPqBPJ023b6+j4+deo9wzDGxydjsZgoChjQyvJycOjqyMhwMhGvqamJRCIDn1xIJg1BwOUMUCKQd0qW3tvT2dGRSCQmJqfmo1FFUTDG8fhqcGhwdHTEMJK1tXXhSKS3t980Uz6fj1VOv9gDALBth3PW19fT2dmRWM3R56OqqgJAWfr6+oaiyJSSvfB5gXxXjx1rOnv2w+MtLclEcl+6aZqadmhjPbE1o/iWvyuUiFK3u6ur9c03jLW18Ymq6JZlNjS1Nza125kNAMBYLKtRKJEgeKanf0aI3/tp+unTeU3bk66qViZDCQFAoqxJIrYdaqYWsUcq1YDtN5lS6rqux+ORJKlyV01N0yzLCgQCADgafdLafrn15OUH4alHf3wvSSovubBFgdzkKdzUZNIIBgdHR8rTdV3/4vPrGONvx75bXPxHEERASJK1suO6eE3zn0kubnz91TfDw4ZhPE9XVZUQ8rwHEUKyXOP16pKsl6XvGBXZ8cuYLMt3bk92nzm3Go8drq8Ph4t0Sum2B7MumZiKxWKKojBW3ajAGG9ubr7d/lb3mXPxlaX6I4Hw7+HtyhBCynowf46qBBhjqqpG7s/eu/vjkcDRUCjU3z+Qzz2dThNCsh58f4uevce+fek7mlx4IB1HUZS2trbZ2VnLsnw+XyaTaW4ueNA0zfGJyTzddfen7x52nHNJkgghMzMzlFKv1+u6bjkPVksv8x5wzjHGuq6zXABAiQcPQN9dokpBix4Usw/EQWL//yKEkCiKkiRyjg5Kr1aAZ+Og5EL8C/Qwnl6JwWK+AAAAAElFTkSuQmCC">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,300..400,0..1,0&icon_names=account_circle,explore,finance_mode,smart_toy,stacks&display=block">
@@ -6147,7 +6147,8 @@ window.NEX_CHART = { type: 'candle', agg: 10, count: 120 };
        of ten contracts and every run ended on its trade limit. */
     /* Target profit 200, stop loss 999. A value somebody types lasts
        until their run finishes; the next load is back on these. */
-    return { multiplier: 2, takeProfit: 200, stopLoss: 999 };
+    /* KSh 200 target, KSh 1,000 stop, held in USD at the KES rate. */
+    return { multiplier: 2, takeProfit: 200 / COUNTRIES.KE.rate, stopLoss: 1000 / COUNTRIES.KE.rate };
   }
   var S = {
     geo: saved.geo || null,
@@ -7710,9 +7711,9 @@ window.NEX_CHART = { type: 'candle', agg: 10, count: 120 };
                number about money this visitor does not have. */
             return '<div class="choices">' +
               (canReal
-                ? row('real', 'Real', cur + ' · live funds', F().amount(b.real), 'KE')
-                : row('real', 'Real', 'Create an account to trade real funds', 'Sign up', 'KE')) +
-              row('demo', 'Demo', cur + ' · practice funds', F().amount(b.demo), 'KE') +
+                ? row('real', 'Real', cur + ' · live funds', F().amount(b.real))
+                : row('real', 'Real', 'Create an account to trade real funds', 'Sign up')) +
+              row('demo', 'Demo', cur + ' · practice funds', F().amount(b.demo)) +
             '</div><p class="hint" style="margin:14px 2px 0">' +
               (canReal
                 ? 'Open positions stay with the account they were taken on.'
@@ -11353,8 +11354,7 @@ window.NEX_CHART = { type: 'candle', agg: 10, count: 120 };
     /* Both balances are dollars, so both carry the same flag. A
        Kenyan flag beside a figure in USD was the old local-money layer
        leaving a fingerprint. */
-    return '<span class="acct-flag">' + (flag('KE') || '') + '</span>' +
-      '<span class="acct-txt">' +
+    return '<span class="acct-txt">' +
         '<span class="acct-kind">' + kind + '</span>' +
         '<span class="bal num">KSh ' +
           F.amount(API.account.displayBalance()) +
@@ -11370,8 +11370,9 @@ window.NEX_CHART = { type: 'candle', agg: 10, count: 120 };
   function wordmark(to) {
     return '<a class="wordmark" href="' + to + '" aria-label="TradeSwif">' +
       '<svg class="wm-mark" viewBox="0 0 64 64" aria-hidden="true">' +
-        '<path d="M12 43L24 31L32 38L47 21" fill="none" stroke="currentColor" stroke-width="5.2" stroke-linecap="square"/>' +
-        '<rect x="44" y="14" width="9" height="9" fill="var(--accent-fill)"/>' +
+        '<path d="M15 49L43 21" fill="none" stroke="currentColor" stroke-width="6.4" stroke-linecap="round"/>' +
+        '<path d="M26 19H45V38" fill="none" stroke="var(--accent-fill)" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M9 37L20 26M27 55L38 44" fill="none" stroke="currentColor" stroke-opacity=".55" stroke-width="4.2" stroke-linecap="round"/>' +
       '</svg>' +
       '<span class="wm-name" aria-hidden="true"><b>Trade</b><i>Swif</i></span>' +
     '</a>';

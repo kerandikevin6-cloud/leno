@@ -340,7 +340,8 @@
        of ten contracts and every run ended on its trade limit. */
     /* Target profit 200, stop loss 999. A value somebody types lasts
        until their run finishes; the next load is back on these. */
-    return { multiplier: 2, takeProfit: 200, stopLoss: 999 };
+    /* KSh 200 target, KSh 1,000 stop, held in USD at the KES rate. */
+    return { multiplier: 2, takeProfit: 200 / COUNTRIES.KE.rate, stopLoss: 1000 / COUNTRIES.KE.rate };
   }
   var S = {
     geo: saved.geo || null,

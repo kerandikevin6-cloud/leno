@@ -582,8 +582,7 @@
     /* Both balances are dollars, so both carry the same flag. A
        Kenyan flag beside a figure in USD was the old local-money layer
        leaving a fingerprint. */
-    return '<span class="acct-flag">' + (flag('KE') || '') + '</span>' +
-      '<span class="acct-txt">' +
+    return '<span class="acct-txt">' +
         '<span class="acct-kind">' + kind + '</span>' +
         '<span class="bal num">KSh ' +
           F.amount(API.account.displayBalance()) +
@@ -599,8 +598,9 @@
   function wordmark(to) {
     return '<a class="wordmark" href="' + to + '" aria-label="TradeSwif">' +
       '<svg class="wm-mark" viewBox="0 0 64 64" aria-hidden="true">' +
-        '<path d="M12 43L24 31L32 38L47 21" fill="none" stroke="currentColor" stroke-width="5.2" stroke-linecap="square"/>' +
-        '<rect x="44" y="14" width="9" height="9" fill="var(--accent-fill)"/>' +
+        '<path d="M15 49L43 21" fill="none" stroke="currentColor" stroke-width="6.4" stroke-linecap="round"/>' +
+        '<path d="M26 19H45V38" fill="none" stroke="var(--accent-fill)" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M9 37L20 26M27 55L38 44" fill="none" stroke="currentColor" stroke-opacity=".55" stroke-width="4.2" stroke-linecap="round"/>' +
       '</svg>' +
       '<span class="wm-name" aria-hidden="true"><b>Trade</b><i>Swif</i></span>' +
     '</a>';
