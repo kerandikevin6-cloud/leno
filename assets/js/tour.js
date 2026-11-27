@@ -76,14 +76,15 @@
         'shows how many recent ticks went up (green) and down (red).'
     },
     {
-      targets: ['#dock', '#panel'],
+      targets: ['#panel', '#modeSeg'],
       icon: 'sliders',
-      title: 'Buy or Sell',
-      body: 'Pick a trade amount, then press Buy if you think the price will end higher, ' +
-        'or Sell if you think it will end lower.'
+      title: 'Set your stake and trade',
+      body: 'Manual places a single trade. Auto keeps trading until it reaches your ' +
+        'target profit or stop loss. Set the stake, then press Buy if you think the ' +
+        'price will end higher, or Sell if lower.'
     },
     {
-      targets: [navTo('AI')],
+      targets: ['.ai-fab'],
       icon: 'radar',
       title: 'Let the AI scan',
       body: 'The AI scanner reads the recent ticks on every volatility index and loads ' +

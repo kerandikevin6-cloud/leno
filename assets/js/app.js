@@ -526,7 +526,6 @@
   /* ---------- chrome ---------- */
   var TABS = [
     { id: 'trade', label: 'Trade', file: '/', icon: 'trade' },
-    { id: 'ai', label: 'AI', file: 'ai', icon: 'ai' },
     { id: 'positions', label: 'Positions', file: 'positions', icon: 'positions' },
     { id: 'markets', label: 'Markets', file: 'markets', icon: 'markets' },
     { id: 'account', label: 'Profile', file: 'account', icon: 'profile', needsAccount: true }
@@ -712,6 +711,14 @@
           '<button class="ditem danger" data-signout>' + icon('out', 17) + '<span>Log out</span></button>' +
         '</div>' +
       '</aside>';
+  }
+
+  /* AI is a round button floating at the bottom right of every app page,
+     not a tab. Left off the AI page itself. */
+  function aiFab(page) {
+    if (page === 'ai') return '';
+    return '<a class="ai-fab" href="' + href('ai') + '" aria-label="AI" title="AI">' +
+      ticon('ai', 26) + '</a>';
   }
 
   function tabbar(page) {
@@ -1699,7 +1706,7 @@
     root.insertAdjacentHTML('afterbegin', topbar(page));
     /* The rail is fixed, so where it lands in the document does not
        matter to the layout — only that it is inside the app shell. */
-    root.insertAdjacentHTML('beforeend', rail(page) + drawer() + (sub ? '' : tabbar(page)));
+    root.insertAdjacentHTML('beforeend', rail(page) + drawer() + (sub ? '' : tabbar(page)) + aiFab(page));
   }
 
   /* The scroll listener that lived here is gone with the floating dock:

@@ -4270,7 +4270,7 @@ html body .consent .btn-mini.solid{background:var(--accent-fill);border-color:va
 
 /* ================================================================
    Trade screen, stripped back: balance and price bar, the bars chart
-   with a buy/sell meter on its right, big BUY / SELL, trade amount.
+   with a buy/sell meter on its right. Everything under it is unchanged.
    ================================================================ */
 .terminal .chart-pin{position:static;top:auto;background:none}
 .quote-bar{
@@ -4303,39 +4303,31 @@ html body .consent .btn-mini.solid{background:var(--accent-fill);border-color:va
 .sm-bar{flex:1;width:6px;border-radius:3px;background:#EF4444;position:relative;overflow:hidden}
 .sm-fill{position:absolute;left:0;right:0;top:0;background:#22C55E;border-radius:3px;transition:height .4s ease}
 
-.terminal .col-right .trade-dock{margin:0;padding:14px 16px 4px;position:static;background:none;border:none}
-.terminal .trade-actions{grid-template-columns:1fr 1fr;gap:12px}
-.terminal .tbtn{padding:16px 10px;border-radius:10px;box-shadow:none}
-.terminal .tbtn .t{font-size:20px;font-weight:700;letter-spacing:.04em}
-.tbtn.buy{background:#2563EB}
-.tbtn.sell{background:#EF4444}
-.tbtn.buy:hover,.tbtn.sell:hover{filter:brightness(1.06)}
-
-.terminal .col-right .panel{padding:12px 16px 18px;border:none;background:none;box-shadow:none}
-.amt-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
-.amt-k{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
-.amt-range{font-size:13px;color:var(--muted)}
-.amt-box{
-  display:flex;align-items:center;gap:8px;padding:0 14px;height:52px;
-  border:1px solid var(--line);border-radius:10px;background:var(--surface-2);
-}
-.amt-box.invalid{border-color:var(--neg)}
-.amt-cur{font-family:var(--mono);font-weight:600;color:var(--muted)}
-.amt-box input{
-  flex:1;min-width:0;background:none;border:none;outline:none;
-  font-family:var(--mono);font-size:18px;font-weight:600;color:var(--text);
-}
-.amt-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-top:12px}
-.amt-chips button{
-  height:42px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);
-  font-weight:600;color:var(--text);font-family:var(--mono);
-}
-.amt-chips button.on{background:#2563EB;border-color:#2563EB;color:#fff}
-
 @media (min-width:900px){
   .terminal .chart-pin .chart-card{flex:1;display:flex;flex-direction:row}
   .terminal .chart-pin #chart{height:auto;min-height:min(60vh,520px)}
-  .terminal .col-right .trade-actions{grid-template-columns:1fr 1fr}
-  .terminal .col-right .tbtn{padding:18px 10px}
-  .terminal .col-right .tbtn .t{font-size:20px}
+}
+
+
+/* ---- AI: a round button floating at the bottom right ----
+   Above the bottom bar on a phone, and above the pinned Buy / Sell
+   buttons on the trade screen. */
+.ai-fab{
+  position:fixed;right:16px;z-index:46;
+  bottom:calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom));
+  width:56px;height:56px;border-radius:50%;
+  display:grid;place-items:center;color:#fff;
+  background:var(--accent-fill);
+  box-shadow:0 8px 24px rgba(0,0,0,.32);
+  transition:transform .15s ease, filter .15s ease;
+}
+.ai-fab:hover{filter:brightness(1.08)}
+.ai-fab:active{transform:scale(.94)}
+.ai-fab .msym{font-variation-settings:"FILL" 1,"wght" 400,"GRAD" 0,"opsz" 24}
+body.no-tabs .ai-fab{bottom:calc(16px + env(safe-area-inset-bottom))}
+@media (max-width:899px){
+  body[data-page="trade"] .ai-fab{bottom:calc(var(--tabbar-h) + 84px + env(safe-area-inset-bottom))}
+}
+@media (min-width:900px){
+  .ai-fab{right:24px;bottom:24px}
 }

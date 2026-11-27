@@ -27,7 +27,7 @@
        somebody arriving at a scanner-driven terminal is there to let it
        run, and defaulting to the mode that does nothing on its own made
        them set it up twice. */
-    mode: 'manual',         /* one trade per press of Buy or Sell */
+    mode: 'auto',           /* auto | manual */
     error: null,
     run: null
   };
@@ -44,6 +44,11 @@
   }
   function payoutFor(side) {
     return API.contracts.payoutFor(typeFor(side), S.stake);
+  }
+  /* payoutRate carries the referral boost, so the figure on the button
+     always matches what the contract actually pays. */
+  function pct(side) {
+    return ((API.contracts.payoutRate(typeFor(side)) - 1) * 100).toFixed(2) + '%';
   }
 
   /* ---------- balance, price and the buy/sell meter ----------
@@ -70,25 +75,159 @@
     if (f) f.style.height = upPct + '%';
   }
 
-  /* ---------- panel: the trade amount ----------
-     The range, one field, and a row of amounts to pick from. */
+  /* ---------- run targets ----------
+     Profit in green, loss in red, the loss multiplier in orange. These
+     are the same three numbers the automated run stops on, so editing
+     one here writes straight through to the saved run settings. */
+  function targetCell(id, label, prefix, value, tone) {
+    return '<div class="tgt ' + tone + '">' +
+      '<span class="tgt-l">' + label + '</span>' +
+      '<span class="tgt-v"><i>' + prefix + '</i>' +
+        '<input id="' + id + '" class="num" value="' + value + '" inputmode="decimal" ' +
+        'autocomplete="off" aria-label="' + label + '"></span>' +
+    '</div>';
+  }
+  function targetsRow(auto) {
+    return '<div class="targets">' +
+      targetCell('tgtTP', 'Target profit', '$', auto.takeProfit, 'pos') +
+      targetCell('tgtSL', 'Stop loss', '$', auto.stopLoss, 'neg') +
+      /* Shown and saved, not applied: every contract in a run is staked
+         the same. */
+      targetCell('tgtMult', 'Loss multiple', '\u00D7', auto.multiplier || 1, 'warn') +
+    '</div>';
+  }
+
+  /* ---------- what this ticket is ----------
+     Four lines under the controls: the instrument, the contract, how long
+     it runs and what it pays. Every one of these was already decided
+     somewhere on the screen — on Markets, in the chooser, in code — and
+     none of them was written down in the one card you read before
+     pressing a side.
+
+     Desktop only. The right-hand card has the height for it and the
+     phone does not; there the same four facts are two thumb-lengths of
+     scrolling away from the buttons, which is worse than not saying
+     them. */
+  function detailRow(k, v) {
+    return '<div class="td-row"><span>' + k + '</span><b>' + v + '</b></div>';
+  }
+  function ticketDetail() {
+    var meta = API.symbol(S.symbol);
+    var sides = sidesFor();
+    var r0 = API.contracts.payoutRate(typeFor(sides[0][0]));
+    var r1 = API.contracts.payoutRate(typeFor(sides[1][0]));
+    function rate(r) { return '+' + ((r - 1) * 100).toFixed(2) + '%'; }
+
+    return '<div class="tdetail">' +
+      detailRow('Instrument', meta.name) +
+      detailRow('Contract', tabLabel()) +
+      detailRow('Duration', S.mode === 'manual' ? CONTRACT_TICKS + ' ticks' : 'Until target or stop') +
+      /* The two sides of a contract do not always pay the same — Matches
+         and Differs are nowhere near each other — so this says one rate
+         only when it is honestly one rate. */
+      (r0 === r1
+        ? detailRow('Payout', rate(r0))
+        : detailRow(sides[0][1], rate(r0)) + detailRow(sides[1][1], rate(r1))) +
+    '</div>';
+  }
+  function tabLabel() {
+    if (S.tab === 'rise_fall') return 'Buy / Sell';
+    return S.tab === 'even_odd' ? 'Even / Odd'
+      : S.tab === 'matches' ? 'Matches / Differs' : 'Over / Under';
+  }
+
+  /* ---------- panel ---------- */
   function renderPanel() {
-    var chips = API.money.stakeChips().chips;
+    var today = API.contracts.today();
+    var wins = today.filter(function (c) { return c.status === 'won'; }).length;
+    var losses = today.filter(function (c) { return c.status === 'lost'; }).length;
+    var pnl = today.reduce(function (a, c) { return a + (c.status === 'open' ? 0 : c.profit); }, 0);
+    var auto = API.prefs.auto();
+
+    /* A number line, not a stepper. Picking 7 was six presses of a
+       chevron, and the digit is not a quantity to nudge up and down: it
+       is one of ten choices, all of which fit on one row. */
+    var barrierRow = S.tab === 'even_odd' || S.tab === 'rise_fall' ? '' :
+      '<div class="barrier">' +
+        '<span class="label">' + (S.tab === 'matches' ? 'Digit to match' : 'Barrier digit') + '</span>' +
+        '<div class="numline">' +
+          [0,1,2,3,4,5,6,7,8,9].map(function (n) {
+            return '<button class="nb' + (n === S.barrier ? ' on' : '') +
+              '" data-digit="' + n + '" aria-pressed="' + (n === S.barrier) + '">' + n + '</button>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+
+    /* The run bar that sat here is gone, and with it the Settings
+       button. It showed "3 of 10 · +$4" and a Stop — both of which the
+       trade button already shows, in amber, with the progress drawn
+       along its own foot. Two of the same control is one to think
+       about, and this one sat between the targets and the buttons they
+       apply to.
+
+       What it also carried was a way into the run settings. The three
+       numbers a run stops on are still editable, in the row directly
+       above; how many contracts it places and the multiplier are not
+       something to be set before every session. */
+
+    /* The three targets are the rules an automated run stops on. In
+       manual mode there is no run to stop, so they were three fields
+       that did nothing sitting above the one control that does. */
+    var targets = S.mode === 'auto' ? targetsRow(auto) : '';
+
+    /* A ticket loaded from the scanner arrives with no card: the market,
+       contract and digit it set are already on the screen. */
+    var scanRow = '';
+
+    /* A strategy being copied, picked on the copy trading page. Said
+       once, with a way to stop, so nobody wonders why it is there. */
+    var copying = null;
+    try { copying = localStorage.getItem('nexas.copy.followingName'); } catch (e) {}
+    var copyRow = !copying ? '' :
+      '<div class="scan-note copy-note">' + I('copy', 15) +
+        '<span>Copying <b>' + String(copying).replace(/</g, '&lt;') + '</b>’s strategy.</span>' +
+        '<button class="scan-x" id="copyStop" aria-label="Stop copying">' + I('close', 14) + '</button>' +
+      '</div>';
+
     html(el.panel,
-      '<div class="amt-head">' +
-        '<span class="amt-k">Trade amount</span>' +
-        '<span class="amt-range num">$' + F.count(API.money.minStakeUsd()) + ' \u2013 $' + F.count(5000) + '</span>' +
+      copyRow +
+      scanRow +
+      '<div class="seg" id="modeSeg">' +
+        /* The label is wrapped because the capsule behind it is an
+           absolutely positioned pseudo-element, which would otherwise
+           paint over a bare text node. */
+        '<button data-mode="auto" class="' + (S.mode === 'auto' ? 'active' : '') + '"><span>Auto</span></button>' +
+        '<button data-mode="manual" class="' + (S.mode === 'manual' ? 'active' : '') + '"><span>Manual</span></button>' +
       '</div>' +
-      '<div class="amt-box' + (S.error ? ' invalid' : '') + '">' +
-        '<span class="amt-cur">$</span>' +
-        '<input id="stake" class="num" value="' + stakeShown() + '" inputmode="decimal" aria-label="Trade amount">' +
+      /* Stake first: it is the field that gets touched on every single
+         trade, and it was below three that are set once and left. */
+      '<div class="stake-block">' +
+        '<div class="stake' + (S.error ? ' invalid' : '') + '">' +
+          '<button id="minus" aria-label="Decrease stake">' + I('minus', 15) + '</button>' +
+          '<div class="f"><input id="stake" value="' + stakeShown() + '" inputmode="decimal" aria-label="Stake">' +
+            '<span class="cur">' + API.money.stakeCurrency() + '</span></div>' +
+          '<button id="plus" aria-label="Increase stake">' + I('plus', 15) + '</button>' +
+        '</div>' +
+        (S.error ? '<div class="field-error" role="alert">' + S.error + '</div>' : '') +
+        '<div class="quick" id="quick">' +
+          API.money.stakeChips().chips.map(function (n) {
+            return '<button data-add="' + n + '">+' + F.count(n) + '</button>';
+          }).join('') +
+        '</div>' +
       '</div>' +
-      (S.error ? '<div class="field-error" role="alert">' + S.error + '</div>' : '') +
-      '<div class="amt-chips" id="quick">' +
-        chips.map(function (n) {
-          return '<button type="button" class="' + (n === stakeShown() ? 'on' : '') +
-            '" data-amt="' + n + '">$' + F.count(n) + '</button>';
-        }).join('') +
+      targets +
+      /* Last, under the automated run box, and in the same place in both
+         modes. It used to sit directly under the stake in manual and
+         above two boxes in auto, so the digit moved down the panel when
+         the mode changed — on the one control somebody reaches for
+         without looking. */
+      barrierRow +
+      ticketDetail() +
+      /* one line, not two: the trade screen is short on height and this
+         is the least load-bearing thing on it */
+      '<div class="session">' +
+        '<span class="num">' + today.length + ' trades · ' + wins + 'W / ' + losses + 'L</span>' +
+        '<span class="num ' + (pnl >= 0 ? 'pos' : 'neg') + '">' + F.signedUsd(pnl) + '</span>' +
       '</div>');
   }
 
@@ -98,6 +237,8 @@
      its progress drawn along the bottom of the button itself, that is
      the whole progress display, so nothing has to appear elsewhere on
      the page and push the layout around. */
+  /* The buttons read Buy and Sell on every tab; the first side of the
+     contract is Buy, the second is Sell. */
   /* Buy wins if the price ends higher than it was bought at, Sell if lower. */
   function sidesFor() {
     return [['rise', 'Buy'], ['fall', 'Sell']];
@@ -131,7 +272,7 @@
       '<div class="trade-actions">' + sides.map(function (sd, i) {
         var live = runningOn(sd[0]);
         var isRun = S.run && S.run.side === sd[0];
-        var tone = i === 0 ? 'buy' : 'sell';
+        var tone = i === 0 ? 'even' : 'odd';
 
         if (live || isRun) {
           /* A run of several shows how far through it is and where it
@@ -159,6 +300,16 @@
         return '<button class="tbtn ' + tone + '" data-side="' + sd[0] + '"' +
           (blocked || busy ? ' disabled' : '') + '>' +
           '<div class="t">' + sd[1] + '</div>' +
+          /* The figure was a bare "19.53", which is a number with no
+             question attached: it could as easily have been the stake,
+             the price or the balance. It says what it is and what it is
+             in — Payout, in dollars, because the stake above it is
+             dollars — with the rate it works out to on the other end of
+             the row. */
+          '<div class="s payout">' +
+            '<span class="s-k">Payout <b>$' + F.usdAmount(payoutFor(sd[0])) + '</b></span>' +
+            '<span class="s-p">' + pct(sd[0]) + '</span>' +
+          '</div>' +
         '</button>';
       }).join('') + '</div>');
   }
@@ -176,7 +327,7 @@
 
   /* update the error + CTA state in place, so typing is never interrupted */
   function refreshValidity() {
-    var box = el.panel.querySelector('.amt-box');
+    var box = el.panel.querySelector('.stake');
     if (!box) return renderPanel();
     box.classList.toggle('invalid', !!S.error);
     var err = el.panel.querySelector('.field-error');
@@ -196,7 +347,7 @@
   function typing() {
     var a = document.activeElement;
     if (!a) return false;
-    return a.id === 'stake';
+    return a.id === 'stake' || !!(a.closest && a.closest('.targets'));
   }
 
   /* ---------- the ticks inside a contract ----------
@@ -580,8 +731,8 @@
       if (t.closest('#plus')) { setStake(stakeShown() + step); return; }
       if (t.closest('#minus')) { setStake(stakeShown() - step); return; }
 
-      var amt = t.closest('[data-amt]');
-      if (amt) { setStake(+amt.getAttribute('data-amt')); return; }
+      var add = t.closest('[data-add]');
+      if (add) { setStake(stakeShown() + (+add.getAttribute('data-add'))); return; }
 
       var sell = t.closest('[data-sell]');
       if (sell) {
