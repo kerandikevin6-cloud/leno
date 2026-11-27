@@ -1,5 +1,5 @@
 /* ============================================================
-   LenoBinary, chart
+   TradeSwif, chart
    Canvas price chart: bars (candles), zoom and pan, a crosshair
    readout, and markers for the contracts currently running.
    Redraws on requestAnimationFrame and only while visible.

@@ -1,4 +1,4 @@
-/* LenoBinary, offline shell.
+/* TradeSwif, offline shell.
    Network-first for our own files, cache as the offline fallback.
 
    This used to be cache-first, which meant a stylesheet cached once was
@@ -17,17 +17,17 @@
    It does not need bumping every deploy. The header says revalidate
    now, so from here on a changed file is picked up by asking. This is
    the one-time way out of the year that was already promised. */
-var CACHE = 'lenobinary-v17';
+var CACHE = 'tradeswif-v1';
 var SHELL = [
   'index.html', 'ai.html', 'markets.html', 'positions.html', 'learn.html', 'responsible.html', 'account.html',
   'chat.html', 'history.html', 'copy.html', 'terms.html', 'privacy.html', 'risk.html',
   'security.html', 'complaints.html', 'login.html', 'signup.html', 'forgot-password.html', 'reset-password.html',
-  'assets/css/app.css?v=20261127k',
-  'assets/js/config.js?v=20261127k', 'assets/js/countries.js?v=20261127k', 'assets/js/net.js?v=20261127k', 'assets/js/format.js?v=20261127k', 'assets/js/api.js?v=20261127k', 'assets/js/chart.js?v=20261127k',
-  'assets/js/modals.js?v=20261127k', 'assets/js/trade.js?v=20261127k', 'assets/js/positions.js?v=20261127k',
-  'assets/js/ai.js?v=20261127k', 'assets/js/tour.js?v=20261127k', 'assets/js/app.js?v=20261127k',
+  'assets/css/app.css?v=20261127l',
+  'assets/js/config.js?v=20261127l', 'assets/js/countries.js?v=20261127l', 'assets/js/net.js?v=20261127l', 'assets/js/format.js?v=20261127l', 'assets/js/api.js?v=20261127l', 'assets/js/chart.js?v=20261127l',
+  'assets/js/modals.js?v=20261127l', 'assets/js/trade.js?v=20261127l', 'assets/js/positions.js?v=20261127l',
+  'assets/js/ai.js?v=20261127l', 'assets/js/tour.js?v=20261127l', 'assets/js/app.js?v=20261127l',
   'assets/mpesa.png', 'assets/cards.png', 'assets/cards-ink.png',
-  'assets/share-card.png',
+  'assets/share-card-tradeswif.png',
   'assets/favicon.ico', 'assets/favicon-32.png', 'assets/favicon-192.png',
   'assets/favicon-512.png', 'assets/apple-touch-icon.png',
   'manifest.webmanifest'

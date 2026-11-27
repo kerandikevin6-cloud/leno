@@ -1,5 +1,5 @@
 /* ============================================================
-   LenoBinary — design system
+   TradeSwif — design system
    Tokens first. Light is the base palette, dark overrides.
    No gradients anywhere. Curved edges. Trading green / red CTAs.
    ============================================================ */
@@ -1687,7 +1687,7 @@ footer a:hover{color:var(--text-2)}
 }
 /* The name is two words and reads as two: NOVI over BINARY, at the
    height of one line of ordinary text, with the monogram beside it. A
-   single line of "NOVIBINARY" is a word nobody can parse at a glance,
+   single line of "NOVISWIF" is a word nobody can parse at a glance,
    and the two-line lockup is what makes the second word readable at the
    size a top bar allows. */
 /* The name is the logo. There was a blue "NB" tile in front of it, which
@@ -1749,7 +1749,6 @@ footer a:hover{color:var(--text-2)}
    bar: a sign-in page has a whole column to itself and no reason to
    drop any of its own name. */
 @media (max-width:383px){
-  .topbar .wm-name i{display:none}
   .topbar .wordmark{font-size:14.5px}
 }
 /* Narrower still and the bar was already over its width before any of
@@ -4063,7 +4062,7 @@ html{touch-action:manipulation;overflow-x:clip}
 
 
 /* ================================================================
-   LenoBinary theme
+   TradeSwif theme
    Novi's look, in this site's colour. Only the brand changes: green
    and red still mean money won and lost, and the dark theme's live
    digit stays Novi's yellow.

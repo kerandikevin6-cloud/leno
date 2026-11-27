@@ -1,5 +1,5 @@
 /* ============================================================
-   LenoBinary, mock API
+   TradeSwif, mock API
    Everything the UI knows about prices, money and contracts comes
    through this module. It is deliberately shaped like the real
    thing (subscribe to a feed, buy, sell, list) so swapping in a

@@ -1,6 +1,6 @@
 {
-  "name": "LenoBinary Terminal",
-  "short_name": "LenoBinary",
+  "name": "TradeSwif Terminal",
+  "short_name": "TradeSwif",
   "description": "Trade synthetic indices from your phone.",
   "start_url": "index.html",
   "scope": ".",
