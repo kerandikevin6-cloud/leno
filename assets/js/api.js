@@ -431,6 +431,7 @@
            the way to the next page, which is why Positions never showed
            it. */
         contracts: S.contracts.slice(0, 200), transactions: S.transactions.slice(0, 200),
+        demoHand: demoHand.slice(),
         deposited: S.deposited, copyActive: S.copyActive,
         auto: S.auto, autoV: S.autoV, autoSpent: S.autoSpent
       }));
@@ -463,7 +464,7 @@
 
   /* ---------- price feed ---------- */
   var history = {};     /* symbol -> [{t, price}] */
-  var HIST = 600;
+  var HIST = 600 ;
 
   function seed(sym) {
     var meta = BY_ID[sym], price = meta.start, now = Date.now(), out = [];
@@ -510,7 +511,11 @@
        those can be influenced: a contract with ticks left is still
        running and its digits are nobody's business yet. */
     var settling = S.contracts.filter(function (c) {
-      return c.status === 'open' && c.symbol === meta.id && c.elapsed + 1 >= c.ticks;
+      return c.status === 'open' &&
+        c.symbol === meta.id &&
+        c.elapsed + 1 >= c.ticks &&
+        c.account === 'demo' &&
+        c.demoMode === true;
     });
     next = biasTick(meta, next, settling);
 
@@ -605,17 +610,18 @@
 
   /* ---------- money ---------- */
   function balance() { return S.balances[S.account]; }
-  function adjust(delta, entry) {
-    S.balances[S.account] = round(S.balances[S.account] + delta, 2);
+  function adjust(delta, entry, account) {
+    account = account || S.account;
+    S.balances[account] = round(S.balances[account] + delta, 2);
     if (entry) {
       S.transactions.unshift({
         id: 'T' + Date.now() + Math.floor(Math.random() * 99),
         t: Date.now(), kind: entry.kind, ref: entry.ref || '',
-        amount: round(delta, 2), balance: S.balances[S.account], account: S.account
+        amount: round(delta, 2), balance: S.balances[account], account: account
       });
     }
     persist();
-    B.emit('balance', { balance: balance(), account: S.account });
+    B.emit('balance', { balance: S.balances[account], account: account });
   }
 
   /* ---------- contracts ---------- */
@@ -624,6 +630,21 @@
   }
   function payoutFor(type, stake) {
     return round(stake * payoutRate(type), 2);
+  }
+
+  function isVipDemo() {
+    return S.account === 'demo' &&
+      S.demoMode &&
+      !!S.session &&
+      S.session.tier === 'vip';
+  }
+
+  function isScriptedDemoContract(c) {
+    return c.scriptedDemo === true &&
+      c.account === 'demo' &&
+      S.demoMode &&
+      S.session &&
+      S.session.tier === 'vip';
   }
 
   function validate(spec) {
@@ -663,7 +684,9 @@
       owner: S.session ? S.session.id : null,
       /* Recorded on the contract itself, so the tag survives into the
          history even if the mode is switched off a minute later. */
-      demoMode: !!S.demoMode
+      demoMode: !!S.demoMode,
+      scriptedDemo: isVipDemo(),
+      scriptedWin: null
     };
     S.contracts.unshift(c);
     adjust(-c.stake, { kind: 'Trade', ref: label(c) });
@@ -682,35 +705,18 @@
     return c.type;
   }
 
-  /* Every digit that would settle this contract in the customer's
-     favour. The inverse of winning(), and kept next to it so the two
-     cannot drift: if one learns a new contract type and the other does
-     not, the demo pays out on a digit the screen says lost. */
-  function winningDigits(c) {
-    var all = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-    switch (c.type) {
-      case 'even_odd':
-        return all.filter(function (d) { return (d % 2 === 0) === (c.side === 'even'); });
-      case 'matches': return [c.barrier];
-      case 'differs': return all.filter(function (d) { return d !== c.barrier; });
-      case 'over':    return all.filter(function (d) { return d > c.barrier; });
-      case 'under':   return all.filter(function (d) { return d < c.barrier; });
-    }
-    return all;
-  }
+  /* The VIP demo uses scripted outcomes, four wins and one loss per
+     shuffled group of five settled contracts. Standard demo retains its
+     existing simulated price bias. */
+  var DEMO_WINS_PER_FIVE = { vip: 4, standard: 2 };
 
-  /* How many contracts in every five settle in the customer's favour
-     while the presentation mode is on. VIP gets three in five, standard
-     two in five: enough to show the product working without a run of
-     wins that reads as staged to anybody watching. */
-  var DEMO_WINS_PER_FIVE = { vip: 3, standard: 2 };
-
-  /* The outcomes are dealt from a shuffled hand of five rather than
-     rolled each time, so the rate holds over every five contracts and
-     not just on average: a coin weighted to 60 still throws five losses
-     in a row now and then, and that is the streak the mode exists to
-     avoid. */
-  var demoHand = [];
+  /* Outcomes are dealt from a shuffled hand of five rather than rolled
+     each time, so every group contains the configured number of wins. */
+  var demoHand = Array.isArray(saved.demoHand)
+    ? saved.demoHand.filter(function (outcome) {
+        return typeof outcome === 'boolean';
+      }).slice(0, 4)
+    : [];
   function demoDeal() {
     if (!demoHand.length) {
       var tier = S.session && S.session.tier === 'vip' ? 'vip' : 'standard';
@@ -724,48 +730,38 @@
     return demoHand.pop();
   }
 
-  /* Move the price so its last digit is one that wins, rather than
-     declaring a win on a digit that lost.
-
-     This is the whole reason the mode is implemented here rather than at
-     settlement. The chart, the digit circles and the result all read off
-     the same tick: bias the verdict and the screen contradicts itself in
-     front of the room, which is worse than the losing streak the mode
-     exists to avoid. The shift is at most nine in the last decimal
-     place, which no chart can show. */
+  /* Standard demo only: steer prices where possible so the displayed
+     tick and result stay aligned. VIP demo outcomes are scripted and
+     marked separately, so its price feed remains untouched. */
   function biasTick(meta, price, settling) {
-    if (!S.demoMode || !settling.length) return price;
+    if (!S.demoMode || S.account !== 'demo' || isVipDemo() || !settling.length) {
+      return price;
+    }
 
-    /* Both directions, which is what makes the rate mean what it says.
-       Forcing only the wins leaves the natural odds to decide the rest,
-       and the rest still win sometimes, so the real rate would drift well
-       above the one set here. */
+    settling = settling.filter(function (c) {
+      return c.account === 'demo' && c.demoMode === true;
+    });
+
+    if (!settling.length) return price;
+
     var wantWin = demoDeal();
-
-    function digitsFor(c) {
-      var win = winningDigits(c);
-      if (wantWin) return win;
-      var all = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-      return all.filter(function (d) { return win.indexOf(d) === -1; });
-    }
-
-    var wanted = digitsFor(settling[0]);
-    for (var i = 1; i < settling.length; i++) {
-      var next = digitsFor(settling[i]);
-      var both = wanted.filter(function (d) { return next.indexOf(d) > -1; });
-      /* Two contracts that cannot both go the same way: the older one
-         takes it. Splitting the difference satisfies neither. */
-      if (both.length) wanted = both;
-    }
-
-    if (!wanted.length) return price;
-
-    var have = lastDigit(price, meta.digits);
-    if (wanted.indexOf(have) > -1) return price;
-
-    var pick = wanted[Math.floor(Math.random() * wanted.length)];
     var step = Math.pow(10, -meta.digits);
-    return round(price + (pick - have) * step, meta.digits);
+
+    for (var distance = 0; distance <= 1000; distance++) {
+      var offsets = distance === 0 ? [0] : [distance, -distance];
+
+      for (var i = 0; i < offsets.length; i++) {
+        var candidate = round(price + offsets[i] * step, meta.digits);
+        var digit = lastDigit(candidate, meta.digits);
+        var valid = settling.every(function (c) {
+          return winning(c, digit, candidate) === wantWin;
+        });
+
+        if (valid) return candidate;
+      }
+    }
+
+    return price;
   }
 
   /* price is the tick being judged; Buy and Sell compare it with the
@@ -787,7 +783,9 @@
   /* indicative resale value while a contract runs */
   function mark(c, digit, price) {
     var progress = c.elapsed / c.ticks;
-    var win = winning(c, digit, price);
+    var win = isScriptedDemoContract(c) && typeof c.scriptedWin === 'boolean'
+      ? c.scriptedWin
+      : winning(c, digit, price);
     var v = win
       ? c.stake + (c.payout - c.stake) * progress * 0.82
       : c.stake * (1 - progress * 0.88);
@@ -815,14 +813,17 @@
   }
 
   function settle(c, point) {
-    var won = winning(c, point.digit, point.price);
+    var scriptedDemo = isScriptedDemoContract(c);
+    var won = scriptedDemo ? demoDeal() : winning(c, point.digit, point.price);
+    if (scriptedDemo) c.scriptedWin = won;
+    c.scriptedOutcome = scriptedDemo;
     c.status = won ? 'won' : 'lost';
     c.exitSpot = point.price;
     c.exitDigit = point.digit;
     c.exitTime = Date.now();
     c.profit = round(won ? c.payout - c.stake : -c.stake, 2);
     c.value = won ? c.payout : 0;
-    if (won) adjust(c.payout, { kind: 'Payout', ref: label(c) });
+    if (won) adjust(c.payout, { kind: 'Payout', ref: label(c) }, c.account);
     B.emit('settled', c);
   }
 
@@ -837,7 +838,7 @@
       : (hs.length ? hs[hs.length - 1].price : c.entrySpot);
     c.exitTime = Date.now();
     c.profit = round(c.value - c.stake, 2);
-    adjust(c.value, { kind: 'Sold', ref: label(c) });
+    adjust(c.value, { kind: 'Sold', ref: label(c) }, c.account);
     B.emit('contracts', { reason: 'sell', contract: c });
     B.emit('settled', c);
     return { ok: true, contract: c };
@@ -1105,6 +1106,7 @@
            the real account, new accounts included. A reload of the same
            session keeps whichever account was last chosen. */
         var fresh = !S.session || S.session.id !== user.id;
+        var previousTier = S.session && S.session.tier;
 
         /* Somebody else signing in on this browser starts clean. Their
            history, balances and flags belonged to the last person here;
@@ -1155,7 +1157,7 @@
         S.verified = user.kyc === 'verified';
         S.kycStatus = user.kyc || 'unverified';
         S.demoMode = !!user.demoMode;
-        demoHand.length = 0;
+        if (fresh || previousTier !== S.session.tier) demoHand.length = 0;
         if (user.copyActive != null) S.copyActive = !!user.copyActive;
         if (fresh) S.account = 'real';
 

@@ -664,13 +664,25 @@
         '<div class="dgroup-body">' + items.join('') + '</div></div>';
     }
     var s = API.session.get() || {};
+    // var vipDemo = s.tier === 'vip' &&
+    //   API.account.kind() === 'demo' &&
+    //   API.account.demoMode();
 
     return '<div class="scrim" id="scrim"></div>' +
       '<aside class="drawer" id="drawer" aria-label="Menu">' +
         '<a class="drawer-user" href="' + href('account') + '">' +
-          '<div class="avatar">' + (s.name || 'A').charAt(0) + '</div>' +
+          '<div class="avatar-wrap">' +
+            '<div class="avatar">' + (s.name || 'A').charAt(0) + '</div>' +
+            (vipDemo
+              ? '<span class="avatar-vdc" aria-label="VDC: VIP demo account with scripted outcomes" title="VDC: VIP demo account with scripted outcomes">VDC</span>'
+              : '') +
+          '</div>' +
           '<div><b>' + (s.name || 'Guest') + '</b><span>' +
-            (s.email ? maskEmail(s.email) : 'not signed in') + '</span></div>' +
+            (s.email ? maskEmail(s.email) : 'not signed in') + '</span>' +
+            (vipDemo
+              ? '<span class="vdc-note">VDC = VIP demo; scripted, not representative</span>'
+              : '') +
+          '</div>' +
           icon('chev', 16) +
         '</a>' +
         '<div class="dnav">' +

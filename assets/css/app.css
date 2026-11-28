@@ -396,11 +396,18 @@ body.no-tabs main{padding-bottom:env(safe-area-inset-bottom)}
 }
 .drawer.open{transform:none}
 .drawer-user{display:flex;align-items:center;gap:11px;padding:18px 14px}
+/* .avatar-wrap{position:relative;flex:none}
 .avatar{
   width:42px;height:42px;border-radius:50%;background:var(--accent-soft);
   border:1px solid var(--line);display:grid;place-items:center;
   color:var(--accent);font-family:var(--display);font-weight:600;font-size:17px;
 }
+.drawer-user .avatar-vdc{
+  position:absolute;right:-8px;bottom:-4px;z-index:1;padding:3px 4px;
+  border:1px solid var(--surface);border-radius:8px;background:var(--accent);
+  color:var(--surface);font-size:8px;font-weight:700;line-height:1;
+} */
+/* .vdc-note{color:var(--accent)!important;font-size:10px!important} */
 .drawer-user b{display:block;font-weight:600;font-size:14px}
 .drawer-user span{color:var(--muted);font-size:12px}
 .drawer-sect{padding:15px 14px 6px}
