@@ -664,9 +664,9 @@
         '<div class="dgroup-body">' + items.join('') + '</div></div>';
     }
     var s = API.session.get() || {};
-    // var vipDemo = s.tier === 'vip' &&
-    //   API.account.kind() === 'demo' &&
-    //   API.account.demoMode();
+    var vipDemo = s.tier === 'vip' &&
+      API.account.kind() === 'demo' &&
+      API.account.demoMode();
 
     return '<div class="scrim" id="scrim"></div>' +
       '<aside class="drawer" id="drawer" aria-label="Menu">' +
